@@ -136,6 +136,7 @@
   });
   document.getElementById('playBtn').addEventListener('click', () => {
     const icon = document.querySelector('#playBtn i');
+    if
     if (player.getPlayerState() === YT.PlayerState.PLAYING) {
       player.pauseVideo();
       icon.classList.replace('fa-pause', 'fa-play');
@@ -145,85 +146,74 @@
     }
   });
 
-  async function loadPlaylist
-  async function loadPlaylist() {
+  function loadPlaylist() {
     setStatus("");
     const url = document.getElementById('playlistUrl').value.trim();
     const idMatch = url.match(/[?&]list=([a-zA-Z0-9_-]+)/);
     if (!idMatch) { 
       setStatus("Link playlist non valido."); 
-      console.error("❌ Playlist URL non valido:", url);
       return; 
     }
     playlistId = idMatch[1];
-    console.log("📋 Playlist ID estratto:", playlistId);
 
-    try {
-      const items = await fetchAllPlaylistItems(playlistId);
+    fetchAllPlaylistItems(playlistId).then(items => {
       console.log("📦 Video totali trovati:", items.length);
-
       const videoIds = items.map(i => i.contentDetails.videoId).filter(Boolean);
-      const meta = await fetchVideosMeta(videoIds);
 
-      const filteredIds = videoIds.filter(id => meta[id]?.embeddable);
-      console.log("✅ Video embeddabili:", filteredIds.length);
+      fetchVideosMeta(videoIds).then(meta => {
+        const filteredIds = videoIds.filter(id => meta[id]?.embeddable);
+        console.log("✅ Video embeddabili:", filteredIds.length);
 
-      if (shuffle) shuffleArray(filteredIds);
+        if (shuffle) shuffleArray(filteredIds);
 
-      if (filteredIds.length > 0) {
-        player.loadPlaylist({ playlist: filteredIds, index: 0 });
-        renderPlaylistUI(items, meta);
-        setStatus(`Caricati ${filteredIds.length} video embeddabili su ${videoIds.length}`);
-      } else {
-        setStatus("Nessun video embeddabile trovato.");
-        console.warn("⚠ Playlist vuota dopo il filtro embeddable");
-      }
-    } catch (err) {
-      console.error("❌ Errore durante il caricamento playlist:", err);
-      setStatus("Errore nel caricamento della playlist. Controlla API key e privacy.");
-    }
+        if (filteredIds.length > 0) {
+          player.loadPlaylist({ playlist: filteredIds, index: 0 });
+          renderPlaylistUI(items, meta);
+          setStatus(`Caricati ${filteredIds.length} video embeddabili su ${videoIds.length}`);
+        } else {
+          setStatus("Nessun video embeddabile trovato.");
+        }
+      });
+    });
   }
 
-  async function fetchAllPlaylistItems(id) {
+  function fetchAllPlaylistItems(id) {
     let pageToken = "", items = [];
-    while (true) {
+    function fetchPage() {
       const url = `https://www.googleapis.com/youtube/v3/playlistItems?part=snippet,contentDetails&maxResults=50&playlistId=${id}&key=${apiKey}${pageToken ? `&pageToken=${pageToken}` : ""}`;
-      const res = await fetch(url);
-      const data = await res.json();
-      if (data.error) {
-        console.error("❌ Errore API playlistItems:", data.error);
-        break;
-      }
-      if (!data.items) break;
-      items.push(...data.items);
-      if (!data.nextPageToken) break;
-      pageToken = data.nextPageToken;
-    }
-    return items;
-  }
-
-  async function fetchVideosMeta(videoIds) {
-    const out = {};
-    for (let i = 0; i < videoIds.length; i += 50) {
-      const batch = videoIds.slice(i, i + 50).join(',');
-      const url = `https://www.googleapis.com/youtube/v3/videos?part=contentDetails,status&id=${batch}&key=${apiKey}`;
-      const res = await fetch(url);
-      const data = await res.json();
-      if (data.error) {
-        console.error("❌ Errore API videos:", data.error);
-        continue;
-      }
-      (data.items || []).forEach(v => {
-        const id = v.id;
-        const status = v.status || {};
-        const contentDetails = v.contentDetails || {};
-        out[id] = {
-          embeddable: !!status.embeddable,
-          duration: formatDuration(contentDetails.duration)
-        };
+      return fetch(url).then(res => res.json()).then(data => {
+        if (data.items) items.push(...data.items);
+        if (data.nextPageToken) {
+          pageToken = data.nextPageToken;
+          return fetchPage();
+        }
       });
     }
-    return out;
+    return fetchPage().then(() => items);
+  }
+
+  function fetchVideosMeta(videoIds) {
+    const out = {};
+    let i = 0;
+    function fetchBatch() {
+      if (i >= videoIds.length) return Promise.resolve(out);
+      const batch = videoIds.slice(i, i + 50).join(',');
+      i += 50;
+      const url = `https://www.googleapis.com/youtube/v3/videos?part=contentDetails,status&id=${batch}&key=${apiKey}`;
+      return fetch(url).then(res => res.json()).then(data => {
+        (data.items || []).forEach(v => {
+          const id = v.id;
+          const status = v.status || {};
+          const contentDetails = v.contentDetails || {};
+          out[id] = {
+            embeddable: !!status.embeddable,
+            duration: formatDuration(contentDetails.duration)
+          };
+        });
+        return fetchBatch();
+      });
+    }
+    return fetchBatch();
   }
 
   function formatDuration(iso) {
@@ -249,7 +239,7 @@
       const duration = meta[id]?.duration || '';
       const div = document.createElement('div');
       div.className = 'playlist-item';
-      div.dataset.id = id; // serve per highlight
+      div.dataset.id = id;
       div.innerHTML = `
         <div class="track-info">
           <strong>${escapeHtml(title)}</strong>
@@ -261,7 +251,6 @@
         const current = player.getPlaylist() || [];
         const pos = current.indexOf(id);
         if (pos >= 0) {
-          console.log("🎵 Salto al video:", title, "(posizione", pos, ")");
           player.playVideoAt(pos);
         }
       });
