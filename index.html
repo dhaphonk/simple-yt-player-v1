@@ -2,65 +2,45 @@
 <html>
 <head>
 <meta charset="UTF-8">
-<title>Dark Playlist Player - Debug</title>
+<title>Dark Playlist Player</title>
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 <style>
   body { background:#121212; color:#fff; font-family:sans-serif; margin:0; }
   .container { display:flex; height:100vh; }
   .left-panel { flex:1; background:#1a1a1a; padding:20px; box-sizing:border-box; display:flex; flex-direction:column; }
   .right-panel { flex:2; background:#181818; padding:20px; box-sizing:border-box; overflow-y:auto; }
-  #player { width:100%; height:200px; background:#000; margin-bottom:20px; }
-  input, select { width:100%; padding:8px; margin-bottom:10px; background:#1e1e1e; color:#fff; border:1px solid #333; border-radius:6px; }
+  #player-container { display:flex; justify-content:space-between; align-items:center; margin-bottom:10px; }
+  #player { width:75%; height:200px; background:#000; }
+  #quality { background:#1e1e1e; color:#fff; border:1px solid #333; border-radius:6px; padding:6px; }
+  .input-row { display:flex; gap:10px; margin:10px 0; }
+  .input-row input { flex:1; padding:8px; background:#1e1e1e; color:#fff; border:1px solid #333; border-radius:6px; }
+  .load-btn {
+    background-color:#7a3cff; border:none; border-radius:25px;
+    padding:8px 16px; color:#fff; font-weight:bold; cursor:pointer;
+    box-shadow:0 0 8px rgba(122,60,255,0.6); transition:background .2s, box-shadow .2s;
+  }
+  .load-btn:hover { background:#5e2fcc; box-shadow:0 0 12px rgba(122,60,255,0.9); }
   .controls { display:flex; justify-content:space-around; margin:10px 0; }
   .controls button {
-    background-color: #7a3cff;
-    border: none;
-    border-radius: 50%;
-    width: 45px;
-    height: 45px;
-    color: #fff;
-    font-size: 18px;
-    cursor: pointer;
-    box-shadow: 0 0 8px rgba(122, 60, 255, 0.6);
-    transition: background-color 0.2s ease, box-shadow 0.2s ease;
+    background-color: #7a3cff; border:none; border-radius:50%;
+    width:45px; height:45px; color:#fff; font-size:18px; cursor:pointer;
+    box-shadow:0 0 8px rgba(122,60,255,0.6); transition:background-color .2s, box-shadow .2s;
   }
-  .controls button:hover {
-    background-color: #5e2fcc;
-    box-shadow: 0 0 12px rgba(122, 60, 255, 0.9);
-  }
-  .volume-control {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    margin: 15px 0;
-  }
-  .volume-control i { font-size: 18px; color: #fff; }
+  .controls button:hover { background:#5e2fcc; box-shadow:0 0 12px rgba(122,60,255,0.9); }
+  .volume-control { display:flex; align-items:center; gap:10px; margin:15px 0; }
+  .volume-control i { font-size:18px; color:#fff; }
   .volume-control input[type="range"] {
-    -webkit-appearance: none;
-    width: 100%;
-    height: 6px;
-    background: #333;
-    border-radius: 3px;
-    outline: none;
-    cursor: pointer;
+    -webkit-appearance:none; width:100%; height:6px; background:#333; border-radius:3px; outline:none; cursor:pointer;
   }
   .volume-control input[type="range"]::-webkit-slider-thumb {
-    -webkit-appearance: none;
-    appearance: none;
-    width: 14px;
-    height: 14px;
-    border-radius: 50%;
-    background: #7a3cff;
-    box-shadow: 0 0 6px rgba(122, 60, 255, 0.8);
-    cursor: pointer;
-    transition: background 0.2s ease;
+    -webkit-appearance:none; width:14px; height:14px; border-radius:50%; background:#7a3cff;
+    box-shadow:0 0 6px rgba(122,60,255,0.8); cursor:pointer; transition:background .2s;
   }
-  .volume-control input[type="range"]::-webkit-slider-thumb:hover {
-    background: #5e2fcc;
-  }
-  .volume-control span { min-width: 40px; text-align: right; }
+  .volume-control input[type="range"]::-webkit-slider-thumb:hover { background:#5e2fcc; }
+  .volume-control span { min-width:40px; text-align:right; }
   .playlist-item { padding:10px; border-bottom:1px solid #333; display:flex; justify-content:space-between; align-items:center; cursor:pointer; }
   .playlist-item:hover { background:#2a2a2a; }
+  .playlist-item.active { background:#3a1f6e; box-shadow:inset 0 0 8px rgba(122,60,255,0.8); }
   .track-info { display:flex; flex-direction:column; }
   .track-number { color:#aaa; font-size:12px; }
   .muted { color:#aaa; font-size:12px; }
@@ -70,29 +50,30 @@
 
 <div class="container">
   <div class="left-panel">
-    <div id="player"></div>
-    <input id="playlistUrl" placeholder="Incolla il link della playlist">
+    <div id="player-container">
+      <div id="player"></div>
+      <select id="quality">
+        <option value="small">240p</option>
+        <option value="medium" selected>360p</option>
+        <option value="hd720">720p</option>
+        <option value="hd1080">1080p</option>
+      </select>
+    </div>
+    <div class="input-row">
+      <input id="playlistUrl" placeholder="Incolla il link della playlist">
+      <button id="loadBtn" class="load-btn"><i class="fa-solid fa-cloud-arrow-down"></i> Carica</button>
+    </div>
     <div class="controls">
       <button id="prevBtn" title="Precedente"><i class="fa-solid fa-backward-step"></i></button>
       <button id="playBtn" title="Play/Pausa"><i class="fa-solid fa-play"></i></button>
       <button id="nextBtn" title="Successivo"><i class="fa-solid fa-forward-step"></i></button>
       <button id="shuffleBtn" title="Shuffle"><i class="fa-solid fa-shuffle"></i></button>
-      <button id="compactBtn" title="Modalità compatta"><i class="fa-solid fa-minimize"></i></button>
-      <button id="audioBtn" title="Solo audio"><i class="fa-solid fa-headphones"></i></button>
     </div>
-    <label>Risoluzione:</label>
-    <select id="quality">
-      <option value="small">240p</option>
-      <option value="medium" selected>360p</option>
-      <option value="hd720">720p</option>
-      <option value="hd1080">1080p</option>
-    </select>
     <div class="volume-control">
       <i id="volumeIcon" class="fa-solid fa-volume-high"></i>
       <input id="volSlider" type="range" min="0" max="100" value="100" step="1">
       <span id="volPercent">100%</span>
     </div>
-    <button id="loadBtn">Carica Playlist</button>
     <div id="status" class="muted"></div>
   </div>
 
@@ -102,7 +83,6 @@
 <script>
   const apiKey = "AIzaSyDDvrky0zFKo-Vs_HY5DaaVTrlXL397wz4"; // <-- INSERISCI QUI LA TUA API KEY
   let player, playlistId = "", shuffle = false, savedQuality = "medium";
-  let compactMode = false, audioOnlyMode = false;
 
   (function loadYT() {
     const tag = document.createElement('script');
@@ -115,7 +95,14 @@
       height: '200',
       width: '100%',
       playerVars: { modestbranding: 1, rel: 0, playsinline: 1, enablejsapi: 1, origin: location.origin },
-      events: { onReady: onPlayerReady }
+      events: { 
+        onReady: onPlayerReady,
+        onStateChange: (e) => {
+          if (e.data === YT.PlayerState.PLAYING) {
+            highlightCurrentVideo();
+          }
+        }
+      }
     });
   }
 
@@ -131,15 +118,7 @@
   document.getElementById('loadBtn').addEventListener('click', loadPlaylist);
   document.getElementById('prevBtn').addEventListener('click', () => player.previousVideo());
   document.getElementById('nextBtn').addEventListener('click', () => player.nextVideo());
-  document.getElementById('shuffleBtn').addEventListener('click', () => { shuffle = !shuffle; console.log("🔀 Shuffle:", shuffle); });
-  document.getElementById('compactBtn').addEventListener('click', () => {
-    compactMode = !compactMode;
-    document.getElementById('player').style.height = compactMode ? "100px" : "200px";
-  });
-  document.getElementById('audioBtn').addEventListener('click', () => {
-    audioOnlyMode = !audioOnlyMode;
-    document.getElementById('player').style.display = audioOnlyMode ? "none" : "block";
-  });
+  document.getElementById('shuffleBtn').addEventListener('click', () => { shuffle = !shuffle; setStatus("Shuffle: " + (shuffle ? "On" : "Off")); });
   document.getElementById('quality').addEventListener('change', e => {
     savedQuality = e.target.value;
     player.setPlaybackQuality(savedQuality);
@@ -157,18 +136,16 @@
   });
   document.getElementById('playBtn').addEventListener('click', () => {
     const icon = document.querySelector('#playBtn i');
-    if (player.getPlayerState() === YT.PlayerState.PLAYING)
     if (player.getPlayerState() === YT.PlayerState.PLAYING) {
       player.pauseVideo();
       icon.classList.replace('fa-pause', 'fa-play');
-      console.log("⏸ Video in pausa");
     } else {
       player.playVideo();
       icon.classList.replace('fa-play', 'fa-pause');
-      console.log("▶ Video in riproduzione");
     }
   });
 
+  async function loadPlaylist
   async function loadPlaylist() {
     setStatus("");
     const url = document.getElementById('playlistUrl').value.trim();
@@ -272,6 +249,7 @@
       const duration = meta[id]?.duration || '';
       const div = document.createElement('div');
       div.className = 'playlist-item';
+      div.dataset.id = id; // serve per highlight
       div.innerHTML = `
         <div class="track-info">
           <strong>${escapeHtml(title)}</strong>
@@ -288,6 +266,18 @@
         }
       });
       container.appendChild(div);
+    });
+  }
+
+  function highlightCurrentVideo() {
+    const currentId = player.getVideoData().video_id;
+    document.querySelectorAll('.playlist-item').forEach(el => {
+      if (el.dataset.id === currentId) {
+        el.classList.add('active');
+        el.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+      } else {
+        el.classList.remove('active');
+      }
     });
   }
 </script>
