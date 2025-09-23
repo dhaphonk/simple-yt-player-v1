@@ -69,251 +69,233 @@
   </div>
 
 <script>
+  // 0) Piccolo CSS iniettato per ridurre un po' il layout e nascondere la risoluzione
+  (function(){
+    const style = document.createElement('style');
+    style.innerText = `
+      .wrap { max-width:800px; }
+      #player { height:180px !important; }
+      #quality { display:none !important; }
+    `;
+    document.head.appendChild(style);
+  })();
+
+  // 1) Carica l'API YouTube IFrame
+  (function(){
+    const tag = document.createElement('script');
+    tag.src = "https://www.youtube.com/iframe_api";
+    document.body.appendChild(tag);
+  })();
+
   const API_KEY = 'AIzaSyDDvrky0zFKo-Vs_HY5DaaVTrlXL397wz4';
   const MAX_RESULTS = 50;
 
   let playlistId = null;
   let player = null;
-  let isRepeating = false;
-  let isShuffled = false;
   let pageCache = {};
   let pageTokens = [];
   let totalTracks = 0;
-  let playlistTitle = '';
 
-  // Estrae l’ID playlist da un URL o da stringa
+  // Estrae l'ID playlist da URL o stringa
   function extractPlaylistId(str) {
     try {
       const u = new URL(str);
-      if (u.searchParams.get('list')) return u.searchParams.get('list');
-    } catch (e) {}
+      return u.searchParams.get('list');
+    } catch(e){}
     const m = str.match(/list=([A-Za-z0-9_-]+)/);
     return m ? m[1] : null;
   }
 
-  // Fetch di una singola pagina di playlistItems
-  async function fetchPage(pageToken = '') {
+  // Fetch pagina per pagina
+  async function fetchPage(token='') {
     const url = new URL('https://www.googleapis.com/youtube/v3/playlistItems');
-    url.searchParams.set('part', 'snippet');
+    url.searchParams.set('part','snippet');
     url.searchParams.set('playlistId', playlistId);
     url.searchParams.set('maxResults', MAX_RESULTS);
     url.searchParams.set('key', API_KEY);
-    if (pageToken) url.searchParams.set('pageToken', pageToken);
+    if(token) url.searchParams.set('pageToken', token);
     const res = await fetch(url);
     return res.json();
   }
 
-  // Fetch del titolo della playlist
+  // Fetch titolo playlist
   async function fetchPlaylistTitle() {
     const url = new URL('https://www.googleapis.com/youtube/v3/playlists');
-    url.searchParams.set('part', 'snippet');
+    url.searchParams.set('part','snippet');
     url.searchParams.set('id', playlistId);
     url.searchParams.set('key', API_KEY);
     const res = await fetch(url);
-    const data = await res.json();
-    return (data.items && data.items[0] && data.items[0].snippet.title) || '';
+    const d = await res.json();
+    return (d.items && d.items[0] && d.items[0].snippet.title) || '';
   }
 
-  // Fetch degli ID embeddabili
+  // Fetch ID embeddabili
   async function fetchEmbeddableIds(ids) {
     const emb = [];
-    for (let i = 0; i < ids.length; i += 50) {
-      const batch = ids.slice(i, i + 50).join(',');
-      const res = await fetch(
+    for(let i=0; i<ids.length; i+=50) {
+      const batch = ids.slice(i,i+50).join(',');
+      const r = await fetch(
         `https://www.googleapis.com/youtube/v3/videos?part=status&id=${batch}&key=${API_KEY}`
       );
-      const data = await res.json();
-      (data.items || []).forEach(v => {
-        if (v.status && v.status.embeddable) emb.push(v.id);
+      const j = await r.json();
+      (j.items||[]).forEach(v=>{
+        if(v.status && v.status.embeddable) emb.push(v.id);
       });
     }
     return emb;
   }
 
-  // Carica tutta la playlist e filtra i video embeddabili
+  // Carica playlist e filtra
   async function loadPlaylist() {
-    playlistId = extractPlaylistId(
-      document.getElementById('playlistUrl').value.trim()
-    );
-    if (!playlistId) {
-      alert('Playlist non valida');
-      return;
-    }
+    const url = document.getElementById('playlistUrl').value.trim();
+    playlistId = extractPlaylistId(url);
+    if(!playlistId) return alert('Playlist non valida');
 
-    // reset stati
+    // reset
     pageCache = {};
     pageTokens = [];
     totalTracks = 0;
     document.getElementById('tracksList').innerHTML = '';
-    document.getElementById('pages').innerHTML = 'Caricamento...';
-    document.getElementById('playlistInfo').textContent = '';
+    document.getElementById('pages').innerHTML = '';
     document.getElementById('playlistTitle').textContent = '';
+    document.getElementById('playlistInfo').textContent = '';
 
-    // fetching paginato
+    // fetch paginato
     let token = '';
     do {
       const d = await fetchPage(token);
-      if (!d.items || !d.items.length) break;
-      pageCache[token] = { items: d.items, next: d.nextPageToken || null };
+      if(!d.items || !d.items.length) break;
+      pageCache[token] = { items:d.items, next:d.nextPageToken||null };
       pageTokens.push(token);
       totalTracks += d.items.length;
-      token = d.nextPageToken || '';
-    } while (token);
+      token = d.nextPageToken||'';
+    } while(token);
 
-    // titolo e conteggio totale
-    playlistTitle = await fetchPlaylistTitle();
-    document.getElementById('playlistTitle').textContent = playlistTitle;
+    // titolo e conteggio
+    const title = await fetchPlaylistTitle();
+    document.getElementById('playlistTitle').textContent = title;
+    document.getElementById('playlistInfo').textContent = 'Totale brani: ' + totalTracks;
 
-    // raccolta di tutti gli ID video e filtro embeddabili
+    // estrai tutti gli ID e filtra embeddabili
     const allIds = pageTokens.flatMap(t =>
-      pageCache[t].items.map(it => it.snippet.resourceId.videoId)
+      pageCache[t].items.map(it=>it.snippet.resourceId.videoId)
     );
-    const embeddable = await fetchEmbeddableIds(allIds);
+    const emb = await fetchEmbeddableIds(allIds);
 
-    // applica il filtro alle pagine
-    pageTokens.forEach(t => {
-      pageCache[t].items = pageCache[t].items.filter(it =>
-        embeddable.includes(it.snippet.resourceId.videoId)
+    pageTokens.forEach(t=>{
+      pageCache[t].items = pageCache[t].items.filter(it=>
+        emb.includes(it.snippet.resourceId.videoId)
       );
     });
-
-    totalTracks = pageTokens.reduce(
-      (sum, t) => sum + pageCache[t].items.length,
-      0
-    );
-    document.getElementById('playlistInfo').textContent =
-      'Totale brani: ' + totalTracks;
-
     renderPages();
   }
 
-  // Crea i pulsanti di paginazione
+  // Paginazione
   function renderPages() {
-    const p = document.getElementById('pages');
-    p.innerHTML = '';
-    pageTokens.forEach((tok, idx) => {
-      const b = document.createElement('button');
-      b.textContent = idx + 1;
-      b.onclick = () => showPage(tok, idx);
-      p.appendChild(b);
+    const container = document.getElementById('pages');
+    container.innerHTML = '';
+    pageTokens.forEach((tok,idx)=>{
+      const btn = document.createElement('button');
+      btn.textContent = idx+1;
+      btn.onclick = ()=> showPage(tok, idx);
+      container.appendChild(btn);
     });
-    if (pageTokens.length) showPage(pageTokens[0], 0);
+    if(pageTokens.length) showPage(pageTokens[0],0);
   }
 
-  // Mostra i brani di una pagina
   function showPage(token, pageIndex) {
-    const data = pageCache[token];
     const list = document.getElementById('tracksList');
     list.innerHTML = '';
-    data.items.forEach((it, idx) => {
-      const sn = it.snippet;
-      if (!sn.resourceId) return;
-      const vid = sn.resourceId.videoId;
+    pageCache[token].items.forEach((it,idx)=>{
+      const vid = it.snippet.resourceId.videoId;
       const div = document.createElement('div');
       div.className = 'track';
-      div.textContent = `${pageIndex * MAX_RESULTS + idx + 1}. ${sn.title}`;
+      div.textContent = `${pageIndex*MAX_RESULTS + idx + 1}. ${it.snippet.title}`;
       div.dataset.videoId = vid;
-      div.onclick = () => playVideo(vid, div);
+      div.onclick = ()=> playVideo(vid, div);
       list.appendChild(div);
     });
   }
 
-  // Riproduce un video già caricato
+  // Riproduce video (instanzia player al primo click)
   function playVideo(id, el) {
-    document.querySelectorAll('.track').forEach(t =>
-      t.classList.remove('active')
-    );
+    document.querySelectorAll('.track').forEach(t=>t.classList.remove('active'));
     el.classList.add('active');
-    if (player) {
+
+    if(!player) {
+      player = new YT.Player('player', {
+        host: 'https://www.youtube-nocookie.com',
+        height: '180',
+        width: '100%',
+        videoId: id,
+        playerVars: {
+          controls: 0,
+          enablejsapi: 1,
+          origin: location.origin
+        },
+        events: {
+          onReady: () => {
+            player.setPlaybackQuality('medium'); // 360p fisso
+            player.playVideo();
+            setupControls();
+          },
+          onStateChange: e => {
+            if(e.data === YT.PlayerState.ENDED) {
+              // auto-next
+              const next = el.nextElementSibling;
+              if(next) next.click();
+            }
+          },
+          onError: e => {
+            if([101,150,153].includes(e.data)) {
+              const next = el.nextElementSibling;
+              if(next) next.click();
+            }
+          }
+        }
+      });
+    } else {
       player.loadVideoById(id);
+      player.setPlaybackQuality('medium');
     }
   }
 
-  // Callback globale YouTube IFrame API
-  function onYouTubeIframeAPIReady() {
-    player = new YT.Player('player', {
-      height: '200',
-      width: '100%',
-      playerVars: {
-        controls: 0,
-        enablejsapi: 1,
-        origin: location.origin
-      },
-      events: {
-        onReady: setupControls,
-        onStateChange: e => {
-          if (e.data === YT.PlayerState.ENDED && isRepeating) {
-            player.playVideo();
-          }
-        },
-        onError: e => {
-          if ([101, 150, 153].includes(e.data)) playNext();
-        }
-      }
-    });
-  }
-
-  // Configura i controlli Play/Pause/Prev/Next/Volume/Seek/Quality
+  // Controlli Play/Pause/Prev/Next/Volume/Seek
   function setupControls() {
-    document.getElementById('btnPlay').onclick = () => {
+    document.getElementById('btnPlay').onclick = ()=>{
       const s = player.getPlayerState();
-      s === YT.PlayerState.PLAYING ? player.pauseVideo() : player.playVideo();
+      s===YT.PlayerState.PLAYING ? player.pauseVideo() : player.playVideo();
     };
-    document.getElementById('btnPrev').onclick = playPrev;
-    document.getElementById('btnNext').onclick = playNext;
-    document.getElementById('btnRepeat').onclick = () =>
-      (isRepeating = !isRepeating);
-    document.getElementById('btnShuffle').onclick = () =>
-      (isShuffled = !isShuffled);
-    document.getElementById('vol').oninput = e => {
+    document.getElementById('btnPrev').onclick = ()=>{
+      const active = document.querySelector('.track.active');
+      if(active && active.previousElementSibling) active.previousElementSibling.click();
+    };
+    document.getElementById('btnNext').onclick = ()=>{
+      const active = document.querySelector('.track.active');
+      if(active && active.nextElementSibling) active.nextElementSibling.click();
+    };
+    document.getElementById('vol').oninput = e=>{
       player.setVolume(e.target.value);
       document.getElementById('volLabel').textContent = e.target.value + '%';
     };
-    document.getElementById('quality').onchange = e =>
-      player.setPlaybackQuality(e.target.value);
-    document.getElementById('seek').oninput = e => {
+    document.getElementById('seek').oninput = e=>{
       const d = player.getDuration();
-      player.seekTo((d * e.target.value) / 100, true);
+      player.seekTo(d * e.target.value/100, true);
     };
-    setInterval(() => {
+    setInterval(()=>{
       try {
-        const c = player.getCurrentTime();
-        const d = player.getDuration();
-        document.getElementById('seek').value = d ? (c / d) * 100 : 0;
+        const c = player.getCurrentTime(),
+              d = player.getDuration();
+        document.getElementById('seek').value = d? c/d*100 : 0;
         document.getElementById('timeLabel').textContent =
-          `${formatTime(c)} / ${formatTime(d)}`;
+          `${Math.floor(c/60)}:${String(Math.floor(c%60)).padStart(2,'0')} / ${Math.floor(d/60)}:${String(Math.floor(d%60)).padStart(2,'0')}`;
       } catch {}
     }, 500);
   }
 
-  // Skip automatico su errori embed
-  function playNext() {
-    const tracks = Array.from(document.querySelectorAll('.track'));
-    const idx = tracks.findIndex(t => t.classList.contains('active'));
-    if (idx >= 0 && idx < tracks.length - 1) tracks[idx + 1].click();
-  }
-
-  function playPrev() {
-    const tracks = Array.from(document.querySelectorAll('.track'));
-    const idx = tracks.findIndex(t => t.classList.contains('active'));
-    if (idx > 0) tracks[idx - 1].click();
-  }
-
-  function formatTime(s) {
-    const m = Math.floor(s / 60);
-    const sec = Math.floor(s % 60).toString().padStart(2, '0');
-    return `${m}:${sec}`;
-  }
-
-  // Binding del bottone Carica
+  // Bind del bottone Carica
   document.getElementById('loadBtn').onclick = loadPlaylist;
-
-  // Carica l’API YouTube IFrame
-  (function() {
-    const tag = document.createElement('script');
-    tag.src = 'https://www.youtube.com/iframe_api';
-    document.body.appendChild(tag);
-  })();
 </script>
+
 </body>
 </html>
