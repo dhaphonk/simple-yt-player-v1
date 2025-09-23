@@ -1,275 +1,319 @@
-<!DOCTYPE html>
-<html>
+<!doctype html>
+<html lang="it">
 <head>
-<meta charset="UTF-8">
-<title>Dark Playlist Player</title>
-<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-<style>
-  body { background:#121212; color:#fff; font-family:sans-serif; margin:0; }
-  .container { display:flex; height:100vh; }
-  .left-panel { flex:1; background:#1a1a1a; padding:20px; box-sizing:border-box; display:flex; flex-direction:column; }
-  .right-panel { flex:2; background:#181818; padding:20px; box-sizing:border-box; overflow-y:auto; }
-  #player-container { display:flex; justify-content:space-between; align-items:center; margin-bottom:10px; }
-  #player { width:75%; height:200px; background:#000; }
-  #quality { background:#1e1e1e; color:#fff; border:1px solid #333; border-radius:6px; padding:6px; }
-  .input-row { display:flex; gap:10px; margin:10px 0; }
-  .input-row input { flex:1; padding:8px; background:#1e1e1e; color:#fff; border:1px solid #333; border-radius:6px; }
-  .load-btn {
-    background-color:#7a3cff; border:none; border-radius:25px;
-    padding:8px 16px; color:#fff; font-weight:bold; cursor:pointer;
-    box-shadow:0 0 8px rgba(122,60,255,0.6); transition:background .2s, box-shadow .2s;
-  }
-  .load-btn:hover { background:#5e2fcc; box-shadow:0 0 12px rgba(122,60,255,0.9); }
-  .controls { display:flex; justify-content:space-around; margin:10px 0; }
-  .controls button {
-    background-color: #7a3cff; border:none; border-radius:50%;
-    width:45px; height:45px; color:#fff; font-size:18px; cursor:pointer;
-    box-shadow:0 0 8px rgba(122,60,255,0.6); transition:background-color .2s, box-shadow .2s;
-  }
-  .controls button:hover { background:#5e2fcc; box-shadow:0 0 12px rgba(122,60,255,0.9); }
-  .volume-control { display:flex; align-items:center; gap:10px; margin:15px 0; }
-  .volume-control i { font-size:18px; color:#fff; }
-  .volume-control input[type="range"] {
-    -webkit-appearance:none; width:100%; height:6px; background:#333; border-radius:3px; outline:none; cursor:pointer;
-  }
-  .volume-control input[type="range"]::-webkit-slider-thumb {
-    -webkit-appearance:none; width:14px; height:14px; border-radius:50%; background:#7a3cff;
-    box-shadow:0 0 6px rgba(122,60,255,0.8); cursor:pointer; transition:background .2s;
-  }
-  .volume-control input[type="range"]::-webkit-slider-thumb:hover { background:#5e2fcc; }
-  .volume-control span { min-width:40px; text-align:right; }
-  .playlist-item { padding:10px; border-bottom:1px solid #333; display:flex; justify-content:space-between; align-items:center; cursor:pointer; }
-  .playlist-item:hover { background:#2a2a2a; }
-  .playlist-item.active { background:#3a1f6e; box-shadow:inset 0 0 8px rgba(122,60,255,0.8); }
-  .track-info { display:flex; flex-direction:column; }
-  .track-number { color:#aaa; font-size:12px; }
-  .muted { color:#aaa; font-size:12px; }
-</style>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>YouTube Playlist Player - Lightweight</title>
+  <style>
+    body{margin:0;font-family:system-ui,Arial,sans-serif;background:#121212;color:#f0f0f0;line-height:1.4}
+    .wrap{max-width:900px;margin:0 auto;padding:16px;display:grid;grid-template-columns:320px 1fr;gap:20px}
+    header{grid-column:1/-1;text-align:center;margin-bottom:12px}
+    h1{margin:4px 0;font-size:1.6rem;color:#bb86fc;font-weight:600}
+    p{margin:0;font-size:0.9rem;color:#aaa}
+    .player{background:#000;border-radius:10px;overflow:hidden;box-shadow:0 2px 8px rgba(0,0,0,0.4)}
+    .controls{margin-top:10px;font-size:1rem;display:flex;align-items:center;gap:10px;flex-wrap:wrap;justify-content:center}
+    button,input,select{background:#1e1e1e;color:#ddd;border:1px solid #333;border-radius:6px;padding:8px 12px;font-size:1rem;cursor:pointer;transition:background 0.2s}
+    button:hover,select:hover,input[type=range]:hover{background:#2a2a2a}
+    button{min-width:46px;min-height:42px}
+    input[type=range]{padding:0;cursor:pointer}
+    .list{margin-top:12px;overflow:auto;max-height:460px;font-size:0.9rem;border:1px solid #222;border-radius:8px;background:#181818}
+    .track{padding:8px 10px;cursor:pointer;border-bottom:1px solid #222;transition:background 0.15s}
+    .track:hover{background:#2a2a2a}
+    .track.active{background:#3a264d}
+    .pages{display:flex;gap:6px;margin:8px 0;font-size:0.85rem;flex-wrap:wrap;justify-content:center}
+    .pages button{padding:5px 10px}
+    #playlistInfo{margin-top:6px;font-size:0.9rem;color:#bbb}
+    #playlistTitle{margin-top:6px;font-size:1rem;color:#fff;font-weight:500;text-align:center}
+    #timeLabel{font-size:0.85rem;color:#aaa;margin-top:4px;text-align:center}
+    @media(max-width:800px){.wrap{grid-template-columns:1fr}}
+  </style>
 </head>
 <body>
+  <div class="wrap">
+    <header>
+      <h1>YouTube Music Player</h1>
+      <p>Mini-player ottimizzato per prestazioni. Mostra max 50 brani per pagina.</p>
+      <div id="playlistInfo"></div>
+    </header>
 
-<div class="container">
-  <div class="left-panel">
-    <div id="player-container">
-      <div id="player"></div>
-      <select id="quality">
-        <option value="small">240p</option>
-        <option value="medium" selected>360p</option>
-        <option value="hd720">720p</option>
-        <option value="hd1080">1080p</option>
-      </select>
+    <div>
+      <div class="player" id="player"></div>
+      <div class="controls">
+        <button id="btnPrev">⏮</button>
+        <button id="btnPlay">▶️/⏸</button>
+        <button id="btnNext">⏭</button>
+        <button id="btnRepeat">🔁</button>
+        <button id="btnShuffle">🔀</button>
+        <input id="seek" type="range" min="0" max="100" value="0">
+        <input id="vol" type="range" min="0" max="100" value="75">
+        <span id="volLabel">75%</span>
+        <select id="quality">
+          <option value="small">144p</option>
+          <option value="medium">360p</option>
+          <option value="large">480p</option>
+          <option value="hd720">720p</option>
+        </select>
+      </div>
+      <div id="timeLabel">0:00 / 0:00</div>
     </div>
-    <div class="input-row">
-      <input id="playlistUrl" placeholder="Incolla il link della playlist">
-      <button id="loadBtn" class="load-btn"><i class="fa-solid fa-cloud-arrow-down"></i> Carica</button>
+
+    <div>
+      <div style="display:flex;gap:6px;margin-bottom:6px">
+        <input id="playlistUrl" type="text" placeholder="Playlist URL..." style="flex:1;padding:8px;border-radius:6px;border:1px solid #333;background:#1e1e1e;color:#eee">
+        <button id="loadBtn">Carica</button>
+      </div>
+      <div id="playlistTitle"></div>
+      <div class="pages" id="pages"></div>
+      <div class="list" id="tracksList"></div>
     </div>
-    <div class="controls">
-      <button id="prevBtn" title="Precedente"><i class="fa-solid fa-backward-step"></i></button>
-      <button id="playBtn" title="Play/Pausa"><i class="fa-solid fa-play"></i></button>
-      <button id="nextBtn" title="Successivo"><i class="fa-solid fa-forward-step"></i></button>
-      <button id="shuffleBtn" title="Shuffle"><i class="fa-solid fa-shuffle"></i></button>
-    </div>
-    <div class="volume-control">
-      <i id="volumeIcon" class="fa-solid fa-volume-high"></i>
-      <input id="volSlider" type="range" min="0" max="100" value="100" step="1">
-      <span id="volPercent">100%</span>
-    </div>
-    <div id="status" class="muted"></div>
   </div>
 
-  <div class="right-panel" id="playlistInfo"></div>
-</div>
-
 <script>
-  const apiKey = "AIzaSyDDvrky0zFKo-Vs_HY5DaaVTrlXL397wz4"; // <-- INSERISCI QUI LA TUA API KEY
-  let player, playlistId = "", shuffle = false, savedQuality = "medium";
+  const API_KEY = 'AIzaSyDDvrky0zFKo-Vs_HY5DaaVTrlXL397wz4';
+  const MAX_RESULTS = 50;
 
-  (function loadYT() {
-    const tag = document.createElement('script');
-    tag.src = "https://www.youtube.com/iframe_api";
-    document.head.appendChild(tag);
-  })();
+  let playlistId = null;
+  let player = null;
+  let isRepeating = false;
+  let isShuffled = false;
+  let pageCache = {};
+  let pageTokens = [];
+  let totalTracks = 0;
+  let playlistTitle = '';
 
+  // Estrae l’ID playlist da un URL o da stringa
+  function extractPlaylistId(str) {
+    try {
+      const u = new URL(str);
+      if (u.searchParams.get('list')) return u.searchParams.get('list');
+    } catch (e) {}
+    const m = str.match(/list=([A-Za-z0-9_-]+)/);
+    return m ? m[1] : null;
+  }
+
+  // Fetch di una singola pagina di playlistItems
+  async function fetchPage(pageToken = '') {
+    const url = new URL('https://www.googleapis.com/youtube/v3/playlistItems');
+    url.searchParams.set('part', 'snippet');
+    url.searchParams.set('playlistId', playlistId);
+    url.searchParams.set('maxResults', MAX_RESULTS);
+    url.searchParams.set('key', API_KEY);
+    if (pageToken) url.searchParams.set('pageToken', pageToken);
+    const res = await fetch(url);
+    return res.json();
+  }
+
+  // Fetch del titolo della playlist
+  async function fetchPlaylistTitle() {
+    const url = new URL('https://www.googleapis.com/youtube/v3/playlists');
+    url.searchParams.set('part', 'snippet');
+    url.searchParams.set('id', playlistId);
+    url.searchParams.set('key', API_KEY);
+    const res = await fetch(url);
+    const data = await res.json();
+    return (data.items && data.items[0] && data.items[0].snippet.title) || '';
+  }
+
+  // Fetch degli ID embeddabili
+  async function fetchEmbeddableIds(ids) {
+    const emb = [];
+    for (let i = 0; i < ids.length; i += 50) {
+      const batch = ids.slice(i, i + 50).join(',');
+      const res = await fetch(
+        `https://www.googleapis.com/youtube/v3/videos?part=status&id=${batch}&key=${API_KEY}`
+      );
+      const data = await res.json();
+      (data.items || []).forEach(v => {
+        if (v.status && v.status.embeddable) emb.push(v.id);
+      });
+    }
+    return emb;
+  }
+
+  // Carica tutta la playlist e filtra i video embeddabili
+  async function loadPlaylist() {
+    playlistId = extractPlaylistId(
+      document.getElementById('playlistUrl').value.trim()
+    );
+    if (!playlistId) {
+      alert('Playlist non valida');
+      return;
+    }
+
+    // reset stati
+    pageCache = {};
+    pageTokens = [];
+    totalTracks = 0;
+    document.getElementById('tracksList').innerHTML = '';
+    document.getElementById('pages').innerHTML = 'Caricamento...';
+    document.getElementById('playlistInfo').textContent = '';
+    document.getElementById('playlistTitle').textContent = '';
+
+    // fetching paginato
+    let token = '';
+    do {
+      const d = await fetchPage(token);
+      if (!d.items || !d.items.length) break;
+      pageCache[token] = { items: d.items, next: d.nextPageToken || null };
+      pageTokens.push(token);
+      totalTracks += d.items.length;
+      token = d.nextPageToken || '';
+    } while (token);
+
+    // titolo e conteggio totale
+    playlistTitle = await fetchPlaylistTitle();
+    document.getElementById('playlistTitle').textContent = playlistTitle;
+
+    // raccolta di tutti gli ID video e filtro embeddabili
+    const allIds = pageTokens.flatMap(t =>
+      pageCache[t].items.map(it => it.snippet.resourceId.videoId)
+    );
+    const embeddable = await fetchEmbeddableIds(allIds);
+
+    // applica il filtro alle pagine
+    pageTokens.forEach(t => {
+      pageCache[t].items = pageCache[t].items.filter(it =>
+        embeddable.includes(it.snippet.resourceId.videoId)
+      );
+    });
+
+    totalTracks = pageTokens.reduce(
+      (sum, t) => sum + pageCache[t].items.length,
+      0
+    );
+    document.getElementById('playlistInfo').textContent =
+      'Totale brani: ' + totalTracks;
+
+    renderPages();
+  }
+
+  // Crea i pulsanti di paginazione
+  function renderPages() {
+    const p = document.getElementById('pages');
+    p.innerHTML = '';
+    pageTokens.forEach((tok, idx) => {
+      const b = document.createElement('button');
+      b.textContent = idx + 1;
+      b.onclick = () => showPage(tok, idx);
+      p.appendChild(b);
+    });
+    if (pageTokens.length) showPage(pageTokens[0], 0);
+  }
+
+  // Mostra i brani di una pagina
+  function showPage(token, pageIndex) {
+    const data = pageCache[token];
+    const list = document.getElementById('tracksList');
+    list.innerHTML = '';
+    data.items.forEach((it, idx) => {
+      const sn = it.snippet;
+      if (!sn.resourceId) return;
+      const vid = sn.resourceId.videoId;
+      const div = document.createElement('div');
+      div.className = 'track';
+      div.textContent = `${pageIndex * MAX_RESULTS + idx + 1}. ${sn.title}`;
+      div.dataset.videoId = vid;
+      div.onclick = () => playVideo(vid, div);
+      list.appendChild(div);
+    });
+  }
+
+  // Riproduce un video già caricato
+  function playVideo(id, el) {
+    document.querySelectorAll('.track').forEach(t =>
+      t.classList.remove('active')
+    );
+    el.classList.add('active');
+    if (player) {
+      player.loadVideoById(id);
+    }
+  }
+
+  // Callback globale YouTube IFrame API
   function onYouTubeIframeAPIReady() {
     player = new YT.Player('player', {
       height: '200',
       width: '100%',
-      playerVars: { modestbranding: 1, rel: 0, playsinline: 1, enablejsapi: 1, origin: location.origin },
-      events: { 
-        onReady: onPlayerReady,
-        onStateChange: (e) => {
-          if (e.data === YT.PlayerState.PLAYING) {
-            highlightCurrentVideo();
+      playerVars: {
+        controls: 0,
+        enablejsapi: 1,
+        origin: location.origin
+      },
+      events: {
+        onReady: setupControls,
+        onStateChange: e => {
+          if (e.data === YT.PlayerState.ENDED && isRepeating) {
+            player.playVideo();
           }
+        },
+        onError: e => {
+          if ([101, 150, 153].includes(e.data)) playNext();
         }
       }
     });
   }
 
-  function onPlayerReady() {
-    player.setPlaybackQuality(savedQuality);
-    player.setVolume(100);
-    console.log("✅ Player pronto");
+  // Configura i controlli Play/Pause/Prev/Next/Volume/Seek/Quality
+  function setupControls() {
+    document.getElementById('btnPlay').onclick = () => {
+      const s = player.getPlayerState();
+      s === YT.PlayerState.PLAYING ? player.pauseVideo() : player.playVideo();
+    };
+    document.getElementById('btnPrev').onclick = playPrev;
+    document.getElementById('btnNext').onclick = playNext;
+    document.getElementById('btnRepeat').onclick = () =>
+      (isRepeating = !isRepeating);
+    document.getElementById('btnShuffle').onclick = () =>
+      (isShuffled = !isShuffled);
+    document.getElementById('vol').oninput = e => {
+      player.setVolume(e.target.value);
+      document.getElementById('volLabel').textContent = e.target.value + '%';
+    };
+    document.getElementById('quality').onchange = e =>
+      player.setPlaybackQuality(e.target.value);
+    document.getElementById('seek').oninput = e => {
+      const d = player.getDuration();
+      player.seekTo((d * e.target.value) / 100, true);
+    };
+    setInterval(() => {
+      try {
+        const c = player.getCurrentTime();
+        const d = player.getDuration();
+        document.getElementById('seek').value = d ? (c / d) * 100 : 0;
+        document.getElementById('timeLabel').textContent =
+          `${formatTime(c)} / ${formatTime(d)}`;
+      } catch {}
+    }, 500);
   }
 
-  function setStatus(msg) { document.getElementById("status").textContent = msg || ""; }
-  function escapeHtml(str) { return String(str).replace(/[&<>"']/g, s => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[s])); }
-
-  document.getElementById('loadBtn').addEventListener('click', loadPlaylist);
-  document.getElementById('prevBtn').addEventListener('click', () => player.previousVideo());
-  document.getElementById('nextBtn').addEventListener('click', () => player.nextVideo());
-  document.getElementById('shuffleBtn').addEventListener('click', () => { shuffle = !shuffle; setStatus("Shuffle: " + (shuffle ? "On" : "Off")); });
-  document.getElementById('quality').addEventListener('change', e => {
-    savedQuality = e.target.value;
-    player.setPlaybackQuality(savedQuality);
-  });
-  document.getElementById('volSlider').addEventListener('input', e => {
-    const v = +e.target.value;
-    player.setVolume(v);
-    document.getElementById('volPercent').innerText = v + "%";
-    const icon = document.getElementById('volumeIcon');
-    icon.className = "fa-solid";
-    if (v === 0) icon.classList.add('fa-volume-xmark');
-    else if (v > 0 && v <= 30) icon.classList.add('fa-volume-off');
-    else if (v > 30 && v <= 70) icon.classList.add('fa-volume-low');
-    else icon.classList.add('fa-volume-high');
-  });
-  document.getElementById('playBtn').addEventListener('click', () => {
-    const icon = document.querySelector('#playBtn i');
-    if
-    if (player.getPlayerState() === YT.PlayerState.PLAYING) {
-      player.pauseVideo();
-      icon.classList.replace('fa-pause', 'fa-play');
-    } else {
-      player.playVideo();
-      icon.classList.replace('fa-play', 'fa-pause');
-    }
-  });
-
-  function loadPlaylist() {
-    setStatus("");
-    const url = document.getElementById('playlistUrl').value.trim();
-    const idMatch = url.match(/[?&]list=([a-zA-Z0-9_-]+)/);
-    if (!idMatch) { 
-      setStatus("Link playlist non valido."); 
-      return; 
-    }
-    playlistId = idMatch[1];
-
-    fetchAllPlaylistItems(playlistId).then(items => {
-      console.log("📦 Video totali trovati:", items.length);
-      const videoIds = items.map(i => i.contentDetails.videoId).filter(Boolean);
-
-      fetchVideosMeta(videoIds).then(meta => {
-        const filteredIds = videoIds.filter(id => meta[id]?.embeddable);
-        console.log("✅ Video embeddabili:", filteredIds.length);
-
-        if (shuffle) shuffleArray(filteredIds);
-
-        if (filteredIds.length > 0) {
-          player.loadPlaylist({ playlist: filteredIds, index: 0 });
-          renderPlaylistUI(items, meta);
-          setStatus(`Caricati ${filteredIds.length} video embeddabili su ${videoIds.length}`);
-        } else {
-          setStatus("Nessun video embeddabile trovato.");
-        }
-      });
-    });
+  // Skip automatico su errori embed
+  function playNext() {
+    const tracks = Array.from(document.querySelectorAll('.track'));
+    const idx = tracks.findIndex(t => t.classList.contains('active'));
+    if (idx >= 0 && idx < tracks.length - 1) tracks[idx + 1].click();
   }
 
-  function fetchAllPlaylistItems(id) {
-    let pageToken = "", items = [];
-    function fetchPage() {
-      const url = `https://www.googleapis.com/youtube/v3/playlistItems?part=snippet,contentDetails&maxResults=50&playlistId=${id}&key=${apiKey}${pageToken ? `&pageToken=${pageToken}` : ""}`;
-      return fetch(url).then(res => res.json()).then(data => {
-        if (data.items) items.push(...data.items);
-        if (data.nextPageToken) {
-          pageToken = data.nextPageToken;
-          return fetchPage();
-        }
-      });
-    }
-    return fetchPage().then(() => items);
+  function playPrev() {
+    const tracks = Array.from(document.querySelectorAll('.track'));
+    const idx = tracks.findIndex(t => t.classList.contains('active'));
+    if (idx > 0) tracks[idx - 1].click();
   }
 
-  function fetchVideosMeta(videoIds) {
-    const out = {};
-    let i = 0;
-    function fetchBatch() {
-      if (i >= videoIds.length) return Promise.resolve(out);
-      const batch = videoIds.slice(i, i + 50).join(',');
-      i += 50;
-      const url = `https://www.googleapis.com/youtube/v3/videos?part=contentDetails,status&id=${batch}&key=${apiKey}`;
-      return fetch(url).then(res => res.json()).then(data => {
-        (data.items || []).forEach(v => {
-          const id = v.id;
-          const status = v.status || {};
-          const contentDetails = v.contentDetails || {};
-          out[id] = {
-            embeddable: !!status.embeddable,
-            duration: formatDuration(contentDetails.duration)
-          };
-        });
-        return fetchBatch();
-      });
-    }
-    return fetchBatch();
+  function formatTime(s) {
+    const m = Math.floor(s / 60);
+    const sec = Math.floor(s % 60).toString().padStart(2, '0');
+    return `${m}:${sec}`;
   }
 
-  function formatDuration(iso) {
-    const m = iso.match(/PT(?:(\d+)H)?(?:(\d+)M)?(?:(\d+)S)?/);
-    const h = +(m?.[1] || 0), min = +(m?.[2] || 0), s = +(m?.[3] || 0);
-    const hh = h > 0 ? h + ":" : "";
-    return hh + String(min).padStart(2, '0') + ":" + String(s).padStart(2, '0');
-  }
+  // Binding del bottone Carica
+  document.getElementById('loadBtn').onclick = loadPlaylist;
 
-  function shuffleArray(arr) {
-    for (let i = arr.length - 1; i > 0; i--) {
-      const j = Math.floor(Math.random() * (i + 1));
-      [arr[i], arr[j]] = [arr[j], arr[i]];
-    }
-  }
-
-  function renderPlaylistUI(items, meta) {
-    const container = document.getElementById('playlistInfo');
-    container.innerHTML = '';
-    items.forEach((item, idx) => {
-      const id = item.contentDetails.videoId;
-      const title = item.snippet.title;
-      const duration = meta[id]?.duration || '';
-      const div = document.createElement('div');
-      div.className = 'playlist-item';
-      div.dataset.id = id;
-      div.innerHTML = `
-        <div class="track-info">
-          <strong>${escapeHtml(title)}</strong>
-          <span class="track-number">#${idx + 1}</span>
-        </div>
-        <span>${duration}</span>
-      `;
-      div.addEventListener('click', () => {
-        const current = player.getPlaylist() || [];
-        const pos = current.indexOf(id);
-        if (pos >= 0) {
-          player.playVideoAt(pos);
-        }
-      });
-      container.appendChild(div);
-    });
-  }
-
-  function highlightCurrentVideo() {
-    const currentId = player.getVideoData().video_id;
-    document.querySelectorAll('.playlist-item').forEach(el => {
-      if (el.dataset.id === currentId) {
-        el.classList.add('active');
-        el.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
-      } else {
-        el.classList.remove('active');
-      }
-    });
-  }
+  // Carica l’API YouTube IFrame
+  (function() {
+    const tag = document.createElement('script');
+    tag.src = 'https://www.youtube.com/iframe_api';
+    document.body.appendChild(tag);
+  })();
 </script>
-
 </body>
 </html>
