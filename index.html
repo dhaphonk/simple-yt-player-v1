@@ -235,11 +235,13 @@ async function showPageByIndex(index) {
   } else {
     token = pageTokens[index-1];
     if(!pageCache[token]) {
-      document.getElementById('tracksList').innerHTML = '<div style="padding:10px">⏳ Caricamento pagina '+(index+1)+'...</div>';
+      document.getElementById('tracksList').innerHTML =
+        '<div style="padding:10px">⏳ Caricamento pagina '+(index+1)+'...</div>';
       const d = await fetchPage(token);
       pageCache[token] = d.items || [];
-      if(d.nextPage
-      if(d.nextPageToken) pageTokens[index] = d.nextPageToken;
+      if(d.nextPageToken) {
+        pageTokens[index] = d.nextPageToken;
+      }
     }
   }
   showPage(token);
