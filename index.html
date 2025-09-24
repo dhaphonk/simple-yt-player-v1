@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>YouTube Playlist Player</title>
+  <title>simple-yt-player-v1 by dhaphonk</title>
   <style>
     body {
       margin:0;
@@ -11,68 +11,70 @@
       background:#121212;
       color:#f0f0f0;
       line-height:1.5;
+      height:100vh;
+      display:flex;
+      flex-direction:column;
     }
     .wrap {
-      max-width:900px;
+      flex:1;
+      max-width:1400px;
       margin:0 auto;
-      padding:32px;
+      padding:30px;
       display:grid;
-      grid-template-columns:320px 1fr;
-      gap:40px;
+      grid-template-columns:1fr 1fr;
+      gap:60px;
     }
     header {
       grid-column:1/-1;
       text-align:center;
-      margin-bottom:32px;
+      margin-bottom:16px;
     }
     h1 {
       margin:8px 0;
-      font-size:1.8rem;
+      font-size:2.2rem;
       color:#bb86fc;
       font-weight:600;
     }
-    p { margin:0; font-size:0.9rem; color:#aaa; }
+    p { margin:0; font-size:1rem; color:#aaa; }
     .player {
       background:#000;
       border-radius:12px;
       overflow:hidden;
       box-shadow:0 2px 12px rgba(0,0,0,0.5);
-      margin-bottom:24px;
+      margin-bottom:10px;
+      width:100%;
+      aspect-ratio:16/9;
     }
     .controls {
       margin:20px 0;
-      font-size:1rem;
       display:flex;
       align-items:center;
-      gap:16px;
-      flex-wrap:wrap;
+      gap:20px;
       justify-content:center;
     }
-    button,input,select {
+    button,input {
       background:#1e1e1e;
       color:#ddd;
       border:1px solid #333;
       border-radius:6px;
       padding:8px 12px;
-      font-size:1rem;
       cursor:pointer;
       transition:background 0.2s;
     }
-    button:hover,select:hover,input[type=range]:hover { background:#2a2a2a; }
-    button { min-width:46px; min-height:42px; }
+    button:hover,input[type=range]:hover { background:#2a2a2a; }
     input[type=range]{padding:0;cursor:pointer}
     .list {
-      margin-top:20px;
+      margin-top:16px;
       overflow:auto;
-      max-height:500px;
-      font-size:0.95rem;
+      max-height:700px;
+      font-size:1rem;
       border:1px solid #222;
       border-radius:10px;
       background:#181818;
-      padding:10px;
+      padding:12px;
     }
     .track {
-      padding:12px 14px;
+      padding:14px 16px;
       cursor:pointer;
       border-bottom:1px solid #222;
       transition:background 0.15s;
@@ -81,60 +83,98 @@
     .track.active { background:#3a264d; }
     .pages {
       display:flex;
-      gap:10px;
-      margin:16px 0;
-      font-size:0.9rem;
+      gap:12px;
+      margin:20px 0;
+      font-size:1rem;
       flex-wrap:wrap;
       justify-content:center;
     }
     #playlistTitle {
       margin-top:10px;
-      font-size:1rem;
+      font-size:1.1rem;
       font-weight:500;
       text-align:center;
       color:#fff;
     }
     #playlistInfo {
       margin-top:6px;
-      font-size:0.9rem;
+      font-size:1rem;
       color:#bbb;
       text-align:center;
     }
-    #timeLabel {
-      font-size:0.85rem;
-      color:#aaa;
-      margin-top:8px;
-      text-align:center;
+    #timeRow, #volumeRow {
+      display:flex;
+      align-items:center;
+      gap:12px;
+      margin-top:12px;
     }
-    @media(max-width:800px){.wrap{grid-template-columns:1fr}}
+    #timeRow input, #volumeRow input {
+      flex:1;
+    }
+    #timeLabel, #volLabel {
+      font-size:0.95rem;
+      color:#aaa;
+      min-width:80px;
+      text-align:right;
+    }
+    @media(max-width:900px){.wrap{grid-template-columns:1fr}}
   </style>
 </head>
 <body>
   <div class="wrap">
     <header>
-      <h1>YouTube Music Player</h1>
-      <p>Mini-player con caricamento a pagine (50 brani per volta).</p>
-      <div id="playlistInfo"></div>
+      <h1>simple-yt-player-v1 by dhaphonk</h1>
+      <p id="playlistInfo">Caricamento...</p>
     </header>
 
+    <!-- Colonna sinistra: Player -->
     <div>
       <div class="player" id="player"></div>
-      <div class="controls">
-        <button id="btnPrev">⏮</button>
-        <button id="btnPlay">▶️/⏸</button>
-        <button id="btnNext">⏭</button>
-        <button id="btnRepeat">🔁</button>
-        <button id="btnShuffle">🔀</button>
+
+      <!-- Slider avanzamento -->
+      <div id="timeRow">
         <input id="seek" type="range" min="0" max="100" value="0">
+        <span id="timeLabel">0:00 / 0:00</span>
+      </div>
+
+      <!-- Controlli -->
+      <div class="controls">
+        <button id="btnPrev" title="Indietro">
+          <svg width="28" height="28" viewBox="0 0 24 24" fill="currentColor">
+            <path d="M6 6h2v12H6zm3.5 6l8.5 6V6z"/>
+          </svg>
+        </button>
+        <button id="btnPlay" title="Play/Pausa">
+          <svg id="iconPlay" width="32" height="32" viewBox="0 0 24 24" fill="currentColor">
+            <path d="M8 5v14l11-7z"/>
+          </svg>
+        </button>
+        <button id="btnNext" title="Avanti">
+          <svg width="28" height="28" viewBox="0 0 24 24" fill="currentColor">
+            <path d="M16 18h2V6h-2M6 18l8.5-6L6 6v12z"/>
+          </svg>
+        </button>
+        <button id="btnShuffle" title="Shuffle">
+          <svg width="26" height="26" viewBox="0 0 24 24" fill="currentColor">
+            <path d="M17 3h4v4h-2V5h-2V3zm0 14h2v-2h2v4h-4v-2zM3 5h6l7 7-7 7H3v-2h5.17L14 12 8.17 7H3V5z"/>
+          </svg>
+        </button>
+      </div>
+
+      <!-- Volume -->
+      <div id="volumeRow">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor">
+          <path d="M3 9v6h4l5 5V4L7 9H3z"/>
+        </svg>
         <input id="vol" type="range" min="0" max="100" value="75">
         <span id="volLabel">75%</span>
       </div>
-      <div id="timeLabel">0:00 / 0:00</div>
     </div>
 
+    <!-- Colonna destra: Playlist -->
     <div>
       <div style="display:flex;gap:10px;margin-bottom:12px">
-        <input id="playlistUrl" type="text" placeholder="Playlist URL..." style="flex:1;padding:10px;border-radius:6px;border:1px solid #333;background:#1e1e1e;color:#eee">
+        <input id="playlistUrl" type="text" placeholder="Playlist URL..." style="flex:1;padding:12px;border-radius:6px;border:1px solid #333;background:#1e1e1e;color:#eee">
         <button id="loadBtn">Carica</button>
       </div>
       <div id="playlistTitle"></div>
@@ -146,186 +186,165 @@
 <script>
 const API_KEY = 'AIzaSyDDvrky0zFKo-Vs_HY5DaaVTrlXL397wz4';
 const MAX_RESULTS = 50;
-
-let playlistId = null;
-let player = null;
-let pageCache = {};
-let pageTokens = [];
-let totalResults = 0;
+let playlistId=null, player=null, pageCache={}, pageTokens=[], totalResults=0, currentPageToken='';
 
 // Estrae ID playlist
-function extractPlaylistId(str) {
-  try {
-    const u = new URL(str);
-    return u.searchParams.get('list');
-  } catch(e){}
-  const m = str.match(/list=([A-Za-z0-9_-]+)/);
-  return m ? m[1] : null;
-}
+function extractPlaylistId(str){try{const u=new URL(str);return u.searchParams.get('list');}catch(e){}const m=str.match(/list=([A-Za-z0-9_-]+)/);return m?m[1]:null;}
 
 // Fetch pagina
-async function fetchPage(pageToken='') {
-  const url = new URL('https://www.googleapis.com/youtube/v3/playlistItems');
-  url.searchParams.set('part','snippet');
-  url.searchParams.set('playlistId', playlistId);
-  url.searchParams.set('maxResults', MAX_RESULTS);
-  url.searchParams.set('key', API_KEY);
-  if(pageToken) url.searchParams.set('pageToken', pageToken);
-  const res = await fetch(url);
-  return res.json();
-}
+async function fetchPage(pageToken=''){const url=new URL('https://www.googleapis.com/youtube/v3/playlistItems');url.searchParams.set('part','snippet');url.searchParams.set('playlistId',playlistId);url.searchParams.set('maxResults',MAX_RESULTS);url.searchParams.set('key',API_KEY);if(pageToken)url.searchParams.set('pageToken',pageToken);const res=await fetch(url);return res.json();}
 
 // Fetch titolo playlist
-async function fetchPlaylistTitle() {
-  const url = new URL('https://www.googleapis.com/youtube/v3/playlists');
-  url.searchParams.set('part','snippet');
-  url.searchParams.set('id', playlistId);
-  url.searchParams.set('key', API_KEY);
-  const res = await fetch(url);
-  const d = await res.json();
-  return (d.items && d.items[0] && d.items[0].snippet.title) || '';
-}
+async function fetchPlaylistTitle(){const url=new URL('https://www.googleapis.com/youtube/v3/playlists');url.searchParams.set('part','snippet');url.searchParams.set('id',playlistId);url.searchParams.set('key',API_KEY);const res=await fetch(url);const d=await res.json();return(d.items&&d.items[0]
+.items[0].snippet.title)||'';}
 
-// Carica playlist (solo prima pagina)
-async function loadPlaylist() {
-  playlistId = extractPlaylistId(document.getElementById('playlistUrl').value.trim());
-  if(!playlistId) return alert('Playlist non valida');
+async function loadPlaylist(){
+  playlistId=extractPlaylistId(document.getElementById('playlistUrl').value.trim());
+  if(!playlistId)return alert('Playlist non valida');
+  pageCache={};pageTokens=[];
+  document.getElementById('tracksList').innerHTML='';
+  document.getElementById('pages').innerHTML='Caricamento...';
+  document.getElementById('playlistTitle').textContent='';
+  document.getElementById('playlistInfo').textContent='';
 
-  pageCache = {};
-  pageTokens = [];
-  document.getElementById('tracksList').innerHTML = '';
-  document.getElementById('pages').innerHTML = 'Caricamento...';
-  document.getElementById('playlistTitle').textContent = '';
-  document.getElementById('playlistInfo').textContent = '';
+  const first=await fetchPage();
+  if(!first.items||!first.items.length)return alert('Playlist vuota');
 
-  const first = await fetchPage();
-  if(!first.items || !first.items.length) return alert('Playlist vuota');
+  pageCache['']=first.items;
+  totalResults=first.pageInfo.totalResults||first.items.length;
+  if(first.nextPageToken)pageTokens[0]=first.nextPageToken;
 
-  pageCache[''] = first.items;
-  totalResults = first.pageInfo.totalResults || first.items.length;
-  if(first.nextPageToken) pageTokens[0] = first.nextPageToken;
+  let title=await fetchPlaylistTitle();
+  if(title.length>60)title=title.substring(0,60)+'…';
+  document.getElementById('playlistTitle').textContent=title;
 
-  let title = await fetchPlaylistTitle();
-  if(title.length > 60) title = title.substring(0,60) + '…';
-  document.getElementById('playlistTitle').textContent = title;
-  document.getElementById('playlistInfo').textContent = 'Totale brani: ' + totalResults;
+  const totalPages=Math.ceil(totalResults/MAX_RESULTS);
+  document.getElementById('playlistInfo').textContent=
+    `50 brani per pagina • Totale: ${totalResults} brani • ${totalPages} pagine`;
 
   renderPages();
   showPage('');
 }
 
-// Bottoni pagine
-function renderPages() {
-  const p = document.getElementById('pages');
-  p.innerHTML = '';
-  const totalPages = Math.ceil(totalResults / MAX_RESULTS);
-  for(let i=0; i<totalPages; i++) {
-    const b = document.createElement('button');
-    b.textContent = i+1;
-    b.onclick = ()=> showPageByIndex(i);
+function renderPages(){
+  const p=document.getElementById('pages');
+  p.innerHTML='';
+  const totalPages=Math.ceil(totalResults/MAX_RESULTS);
+  for(let i=0;i<totalPages;i++){
+    const b=document.createElement('button');
+    b.textContent=i+1;
+    b.onclick=()=>showPageByIndex(i);
     p.appendChild(b);
   }
 }
 
-// Mostra pagina per indice
-async function showPageByIndex(index) {
-  let token = '';
-  if(index === 0) {
-    token = '';
+async function showPageByIndex(index){
+  let token='';
+  if(index===0){
+    token='';
   } else {
-    token = pageTokens[index-1];
-    if(!pageCache[token]) {
-      document.getElementById('tracksList').innerHTML =
+    token=pageTokens[index-1];
+    if(!pageCache[token]){
+      document.getElementById('tracksList').innerHTML=
         '<div style="padding:10px">⏳ Caricamento pagina '+(index+1)+'...</div>';
-      const d = await fetchPage(token);
-      pageCache[token] = d.items || [];
-      if(d.nextPageToken) {
-        pageTokens[index] = d.nextPageToken;
-      }
+      const d=await fetchPage(token);
+      pageCache[token]=d.items||[];
+      if(d.nextPageToken)pageTokens[index]=d.nextPageToken;
     }
   }
+  currentPageToken=token;
   showPage(token);
 }
 
-// Mostra i brani di una pagina
-function showPage(token) {
-  const list = document.getElementById('tracksList');
-  list.innerHTML = '';
-  (pageCache[token]||[]).forEach((it,idx)=>{
-    const vid = it.snippet.resourceId.videoId;
-    const div = document.createElement('div');
-    div.className = 'track';
-    div.textContent = it.snippet.title;
-    div.dataset.videoId = vid;
-    div.onclick = ()=> playVideo(vid, div);
+function showPage(token){
+  const list=document.getElementById('tracksList');
+  list.innerHTML='';
+  (pageCache[token]||[]).forEach((it)=>{
+    const vid=it.snippet.resourceId.videoId;
+    const div=document.createElement('div');
+    div.className='track';
+    div.textContent=it.snippet.title;
+    div.dataset.videoId=vid;
+    div.onclick=()=>playVideo(vid,div);
     list.appendChild(div);
   });
 }
 
-// Riproduce un video
-function playVideo(id, el) {
+function playVideo(id,el){
   document.querySelectorAll('.track').forEach(t=>t.classList.remove('active'));
-  el.classList.add('active');
-  if(!player) {
-    player = new YT.Player('player', {
-      height: '180',
-      width: '100%',
-      videoId: id,
-      playerVars: { controls:0, enablejsapi:1, origin: location.origin },
-      events: {
-        onReady: ()=> player.setPlaybackQuality('medium'), // 360p fisso
-        onError: e => { if([101,150,153].includes(e.data)) el.nextElementSibling?.click(); }
+  if(el) el.classList.add('active');
+  if(!player){
+    player=new YT.Player('player',{
+      width:'100%',height:'100%',videoId:id,
+      playerVars:{controls:0,modestbranding:1,rel:0,origin:location.origin},
+      events:{
+        onReady:()=>{player.setPlaybackQuality('medium');setInterval(()=>player.setPlaybackQuality('medium'),2000);},
+        onStateChange:()=>player.setPlaybackQuality('medium'),
+        onError:e=>{if([101,150,153].includes(e.data)) el?.nextElementSibling?.click();}
       }
     });
   } else {
     player.loadVideoById(id);
     player.setPlaybackQuality('medium');
+    setInterval(()=>player.setPlaybackQuality('medium'),2000);
   }
 }
 
-// Controlli base
-document.getElementById('btnPlay').onclick = ()=>{
-  if(!player) return;
-  const s = player.getPlayerState();
-  s===YT.PlayerState.PLAYING ? player.pauseVideo() : player.playVideo();
+// Controlli
+document.getElementById('btnPlay').onclick=()=>{
+  if(!player)return;
+  const s=player.getPlayerState();
+  const icon=document.getElementById('iconPlay').firstElementChild;
+  if(s===YT.PlayerState.PLAYING){
+    player.pauseVideo();
+    icon.setAttribute('d','M6 19h4V5H6zm8-14v14h4V5h-4z'); // pausa
+  } else {
+    player.playVideo();
+    icon.setAttribute('d','M8 5v14l11-7z'); // play
+  }
 };
-document.getElementById('btnPrev').onclick = ()=>{
-  const active = document.querySelector('.track.active');
-  if(active && active.previousElementSibling) active.previousElementSibling.click();
+document.getElementById('btnPrev').onclick=()=>{
+  const active=document.querySelector('.track.active');
+  if(active&&active.previousElementSibling) active.previousElementSibling.click();
 };
-document.getElementById('btnNext').onclick = ()=>{
-  const active = document.querySelector('.track.active');
-  if(active && active.nextElementSibling) active.nextElementSibling.click();
+document.getElementById('btnNext').onclick=()=>{
+  const active=document.querySelector('.track.active');
+  if(active&&active.nextElementSibling) active.nextElementSibling.click();
 };
-document.getElementById('vol').oninput = e=>{
+document.getElementById('btnShuffle').onclick=()=>{
+  const tracks=document.querySelectorAll('#tracksList .track');
+  if(tracks.length===0)return;
+  const randomIndex=Math.floor(Math.random()*tracks.length);
+  tracks[randomIndex].click();
+};
+
+document.getElementById('vol').oninput=e=>{
   if(player) player.setVolume(e.target.value);
-  document.getElementById('volLabel').textContent = e.target.value + '%';
+  document.getElementById('volLabel').textContent=e.target.value+'%';
 };
-document.getElementById('seek').oninput = e=>{
-  if(player) {
-    const d = player.getDuration();
-    player.seekTo(d * e.target.value/100, true);
+document.getElementById('seek').oninput=e=>{
+  if(player){
+    const d=player.getDuration();
+    player.seekTo(d*e.target.value/100,true);
   }
 };
 setInterval(()=>{
-  try {
-    if(player) {
-      const c = player.getCurrentTime(),
-            d = player.getDuration();
-      document.getElementById('seek').value = d? c/d*100 : 0;
-      document.getElementById('timeLabel').textContent =
+  try{
+    if(player){
+      const c=player.getCurrentTime(),d=player.getDuration();
+      document.getElementById('seek').value=d?c/d*100:0;
+      document.getElementById('timeLabel').textContent=
         `${Math.floor(c/60)}:${String(Math.floor(c%60)).padStart(2,'0')} / ${Math.floor(d/60)}:${String(Math.floor(d%60)).padStart(2,'0')}`;
     }
-  } catch {}
-}, 500);
+  }catch{}
+},500);
 
-// Bottone Carica
-document.getElementById('loadBtn').onclick = loadPlaylist;
+document.getElementById('loadBtn').onclick=loadPlaylist;
 
 // Carica API YouTube
 (function(){
-  const tag = document.createElement('script');
-  tag.src = "https://www.youtube.com/iframe_api";
+  const tag=document.createElement('script');
+  tag.src="https://www.youtube.com/iframe_api";
   document.body.appendChild(tag);
 })();
 </script>
