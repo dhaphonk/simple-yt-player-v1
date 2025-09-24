@@ -5,33 +5,34 @@
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <title>simple-yt-player-v1 by dhaphonk</title>
   <style>
-    body {
+    html, body {
       margin:0;
+      padding:0;
+      height:100%;
+      overflow:hidden; /* 🔒 niente scroll globale */
       font-family:system-ui,Arial,sans-serif;
       background:#121212;
       color:#f0f0f0;
       line-height:1.5;
-      height:100vh;
-      display:flex;
-      flex-direction:column;
     }
     .wrap {
-      flex:1;
+      height:100vh;
       max-width:1400px;
       margin:0 auto;
-      padding:30px;
+      padding:20px;
       display:grid;
       grid-template-columns:1fr 1fr;
-      gap:60px;
+      gap:40px;
+      box-sizing:border-box;
     }
     header {
       grid-column:1/-1;
       text-align:center;
-      margin-bottom:16px;
+      margin-bottom:10px;
     }
     h1 {
       margin:8px 0;
-      font-size:2.2rem;
+      font-size:2rem;
       color:#bb86fc;
       font-weight:600;
     }
@@ -42,14 +43,16 @@
       overflow:hidden;
       box-shadow:0 2px 12px rgba(0,0,0,0.5);
       margin-bottom:10px;
-      width:100%;
-      aspect-ratio:16/9;
+      width:90%;       /* leggermente più stretta */
+      height:30vh;     /* più bassa */
+      margin-left:auto;
+      margin-right:auto;
     }
     .controls {
-      margin:20px 0;
+      margin:12px 0;
       display:flex;
       align-items:center;
-      gap:20px;
+      gap:14px;
       justify-content:center;
     }
     button,input {
@@ -64,57 +67,50 @@
     button:hover,input[type=range]:hover { background:#2a2a2a; }
     input[type=range]{padding:0;cursor:pointer}
     .list {
-      margin-top:16px;
-      overflow:auto;
-      max-height:700px;
+      margin-top:10px;
+      overflow:auto; /* ✅ solo la lista scrollabile */
+      height:calc(100vh - 220px); /* si adatta alla finestra */
       font-size:1rem;
       border:1px solid #222;
       border-radius:10px;
       background:#181818;
-      padding:12px;
+      padding:10px;
     }
     .track {
-      padding:14px 16px;
+      padding:8px 12px;
       cursor:pointer;
       border-bottom:1px solid #222;
       transition:background 0.15s;
+      line-height:1.5;
     }
     .track:hover { background:#2a2a2a; }
     .track.active { background:#3a264d; }
-    .pages {
-      display:flex;
-      gap:12px;
-      margin:20px 0;
-      font-size:1rem;
-      flex-wrap:wrap;
-      justify-content:center;
-    }
     #playlistTitle {
-      margin-top:10px;
-      font-size:1.1rem;
+      margin-top:6px;
+      font-size:1rem;
       font-weight:500;
       text-align:center;
       color:#fff;
     }
     #playlistInfo {
-      margin-top:6px;
-      font-size:1rem;
+      margin-top:4px;
+      font-size:0.9rem;
       color:#bbb;
       text-align:center;
     }
     #timeRow, #volumeRow {
       display:flex;
       align-items:center;
-      gap:12px;
-      margin-top:12px;
+      gap:10px;
+      margin-top:6px;
     }
     #timeRow input, #volumeRow input {
       flex:1;
     }
     #timeLabel, #volLabel {
-      font-size:0.95rem;
+      font-size:0.9rem;
       color:#aaa;
-      min-width:80px;
+      min-width:70px;
       text-align:right;
     }
     @media(max-width:900px){.wrap{grid-template-columns:1fr}}
@@ -140,22 +136,22 @@
       <!-- Controlli -->
       <div class="controls">
         <button id="btnPrev" title="Indietro">
-          <svg width="28" height="28" viewBox="0 0 24 24" fill="currentColor">
+          <svg width="26" height="26" viewBox="0 0 24 24" fill="currentColor">
             <path d="M6 6h2v12H6zm3.5 6l8.5 6V6z"/>
           </svg>
         </button>
         <button id="btnPlay" title="Play/Pausa">
-          <svg id="iconPlay" width="32" height="32" viewBox="0 0 24 24" fill="currentColor">
+          <svg id="iconPlay" width="30" height="30" viewBox="0 0 24 24" fill="currentColor">
             <path d="M8 5v14l11-7z"/>
           </svg>
         </button>
         <button id="btnNext" title="Avanti">
-          <svg width="28" height="28" viewBox="0 0 24 24" fill="currentColor">
+          <svg width="26" height="26" viewBox="0 0 24 24" fill="currentColor">
             <path d="M16 18h2V6h-2M6 18l8.5-6L6 6v12z"/>
           </svg>
         </button>
         <button id="btnShuffle" title="Shuffle">
-          <svg width="26" height="26" viewBox="0 0 24 24" fill="currentColor">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor">
             <path d="M17 3h4v4h-2V5h-2V3zm0 14h2v-2h2v4h-4v-2zM3 5h6l7 7-7 7H3v-2h5.17L14 12 8.17 7H3V5z"/>
           </svg>
         </button>
@@ -163,7 +159,7 @@
 
       <!-- Volume -->
       <div id="volumeRow">
-        <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor">
           <path d="M3 9v6h4l5 5V4L7 9H3z"/>
         </svg>
         <input id="vol" type="range" min="0" max="100" value="75">
@@ -173,12 +169,11 @@
 
     <!-- Colonna destra: Playlist -->
     <div>
-      <div style="display:flex;gap:10px;margin-bottom:12px">
-        <input id="playlistUrl" type="text" placeholder="Playlist URL..." style="flex:1;padding:12px;border-radius:6px;border:1px solid #333;background:#1e1e1e;color:#eee">
+      <div style="display:flex;gap:10px;margin-bottom:8px">
+        <input id="playlistUrl" type="text" placeholder="Playlist URL..." style="flex:1;padding:10px;border-radius:6px;border:1px solid #333;background:#1e1e1e;color:#eee">
         <button id="loadBtn">Carica</button>
       </div>
       <div id="playlistTitle"></div>
-      <div class="pages" id="pages"></div>
       <div class="list" id="tracksList"></div>
     </div>
   </div>
@@ -186,90 +181,55 @@
 <script>
 const API_KEY = 'AIzaSyDDvrky0zFKo-Vs_HY5DaaVTrlXL397wz4';
 const MAX_RESULTS = 50;
-let playlistId=null, player=null, pageCache={}, pageTokens=[], totalResults=0, currentPageToken='';
+let playlistId=null, player=null, totalResults=0;
 
 // Estrae ID playlist
-function extractPlaylistId(str){try{const u=new URL(str);return u.searchParams.get('list');}catch(e){}const m=str.match(/list=([A-Za-z0-9_-]+)/);return m?m[1]:null;}
+function extractPlaylistId(str){
+  try{const u=new URL(str);return u.searchParams.get('list');}
+  catch(e){}
+  const m=str.match(/list=([A-Za-z0-9_-]+)/);
+  return m?m[1]:null;
+}
 
-// Fetch pagina
-async function fetchPage(pageToken=''){const url=new URL('https://www.googleapis.com/youtube/v3/playlistItems');url.searchParams.set('part','snippet');url.searchParams.set('playlistId',playlistId);url.searchParams.set('maxResults',MAX_RESULTS);url.searchParams.set('key',API_KEY);if(pageToken)url.searchParams.set('pageToken',pageToken);const res=await fetch(url);return res.json();}
-
-// Fetch titolo playlist
-async function fetchPlaylistTitle(){const url=new URL('https://www.googleapis.com/youtube/v3/playlists');url.searchParams.set('part','snippet');url.searchParams.set('id',playlistId);url.searchParams.set('key',API_KEY);const res=await fetch(url);const d=await res.json();return(d.items&&d.items[0]
-.items[0].snippet.title)||'';}
-
+// Carica tutta la playlist in un unico array
 async function loadPlaylist(){
   playlistId=extractPlaylistId(document.getElementById('playlistUrl').value.trim());
   if(!playlistId)return alert('Playlist non valida');
-  pageCache={};pageTokens=[];
-  document.getElementById('tracksList').innerHTML='';
-  document.getElementById('pages').innerHTML='Caricamento...';
-  document.getElementById('playlistTitle').textContent='';
-  document.getElementById('playlistInfo').textContent='';
 
-  const first=await fetchPage();
-  if(!first.items||!first.items.length)return alert('Playlist vuota');
+  let allItems=[];
+  let pageToken='';
+  do {
+    const url=new URL('https://www.googleapis.com/youtube/v3/playlistItems');
+    url.searchParams.set('part','snippet');
+    url.searchParams.set('playlistId',playlistId);
+    url.searchParams.set('maxResults',MAX_RESULTS);
+    url.searchParams.set('key',API_KEY);
+    if(pageToken)url.searchParams.set('pageToken',pageToken);
 
-  pageCache['']=first.items;
-  totalResults=first.pageInfo.totalResults||first.items.length;
-  if(first.nextPageToken)pageTokens[0]=first.nextPageToken;
+    const res=await fetch(url);
+    const data=await res.json();
+    allItems=allItems.concat(data.items||[]);
+    pageToken=data.nextPageToken||'';
+  } while(pageToken);
 
-  let title=await fetchPlaylistTitle();
-  if(title.length>60)title=title.substring(0,60)+'…';
-  document.getElementById('playlistTitle').textContent=title;
+  totalResults=allItems.length;
+  document.getElementById('playlistInfo').textContent=`Totale: ${totalResults} brani`;
 
-  const totalPages=Math.ceil(totalResults/MAX_RESULTS);
-  document.getElementById('playlistInfo').textContent=
-    `50 brani per pagina • Totale: ${totalResults} brani • ${totalPages} pagine`;
-
-  renderPages();
-  showPage('');
-}
-
-function renderPages(){
-  const p=document.getElementById('pages');
-  p.innerHTML='';
-  const totalPages=Math.ceil(totalResults/MAX_RESULTS);
-  for(let i=0;i<totalPages;i++){
-    const b=document.createElement('button');
-    b.textContent=i+1;
-    b.onclick=()=>showPageByIndex(i);
-    p.appendChild(b);
-  }
-}
-
-async function showPageByIndex(index){
-  let token='';
-  if(index===0){
-    token='';
-  } else {
-    token=pageTokens[index-1];
-    if(!pageCache[token]){
-      document.getElementById('tracksList').innerHTML=
-        '<div style="padding:10px">⏳ Caricamento pagina '+(index+1)+'...</div>';
-      const d=await fetchPage(token);
-      pageCache[token]=d.items||[];
-      if(d.nextPageToken)pageTokens[index]=d.nextPageToken;
-    }
-  }
-  currentPageToken=token;
-  showPage(token);
-}
-
-function showPage(token){
   const list=document.getElementById('tracksList');
   list.innerHTML='';
-  (pageCache[token]||[]).forEach((it)=>{
-    const vid=it.snippet.resourceId.videoId;
-    const div=document.createElement('div');
-    div.className='track';
-    div.textContent=it.snippet.title;
-    div.dataset.videoId=vid;
-    div.onclick=()=>playVideo(vid,div);
+  allItems.forEach((it, idx) => {
+    const vid = it.snippet.resourceId.videoId;
+    const div = document.createElement('div');
+    div.className = 'track';
+    // 🔢 Numerazione progressiva
+    div.textContent = (idx+1) + ". " + it.snippet.title;
+    div.dataset.videoId = vid;
+    div.onclick = () => playVideo(vid, div);
     list.appendChild(div);
   });
 }
 
+// Riproduzione video
 function playVideo(id,el){
   document.querySelectorAll('.track').forEach(t=>t.classList.remove('active'));
   if(el) el.classList.add('active');
@@ -318,6 +278,7 @@ document.getElementById('btnShuffle').onclick=()=>{
   tracks[randomIndex].click();
 };
 
+// Volume e seek
 document.getElementById('vol').oninput=e=>{
   if(player) player.setVolume(e.target.value);
   document.getElementById('volLabel').textContent=e.target.value+'%';
