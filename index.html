@@ -235,20 +235,28 @@ function playVideo(id,el){
   if(el) el.classList.add('active');
   if(!player){
     player=new YT.Player('player',{
-      width:'100%',height:'100%',videoId:id,
-      playerVars:{controls:0,modestbranding:1,rel:0,origin:location.origin},
-      events:{
-        onReady:()=>{player.setPlaybackQuality('medium');setInterval(()=>player.setPlaybackQuality('medium'),2000);},
-        onStateChange:()=>player.setPlaybackQuality('medium'),
-        onError:e=>{if([101,150,153].includes(e.data)) el?.nextElementSibling?.click();}
+  width:'100%',height:'100%',videoId:id,
+  playerVars:{controls:0,modestbranding:1,rel:0,origin:location.origin},
+  events:{
+    onReady:()=>{
+      player.setPlaybackQuality('medium');
+      setInterval(()=>player.setPlaybackQuality('medium'),2000);
+    },
+    onStateChange:(e)=>{
+      player.setPlaybackQuality('medium');
+      // ✅ Autoplay canzone successiva
+      if(e.data === YT.PlayerState.ENDED){
+        const active=document.querySelector('.track.active');
+        if(active && active.nextElementSibling){
+          active.nextElementSibling.click();
+        }
       }
-    });
-  } else {
-    player.loadVideoById(id);
-    player.setPlaybackQuality('medium');
-    setInterval(()=>player.setPlaybackQuality('medium'),2000);
+    },
+    onError:e=>{
+      if([101,150,153].includes(e.data)) el?.nextElementSibling?.click();
+    }
   }
-}
+});
 
 // Controlli
 document.getElementById('btnPlay').onclick=()=>{
