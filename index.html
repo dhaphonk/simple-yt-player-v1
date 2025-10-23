@@ -9,7 +9,7 @@
       margin:0;
       padding:0;
       height:100%;
-      overflow:hidden; /* 🔒 niente scroll globale */
+      overflow:hidden;
       font-family:system-ui,Arial,sans-serif;
       background:#121212;
       color:#f0f0f0;
@@ -43,8 +43,8 @@
       overflow:hidden;
       box-shadow:0 2px 12px rgba(0,0,0,0.5);
       margin-bottom:10px;
-      width:90%;       /* leggermente più stretta */
-      height:30vh;     /* più bassa */
+      width:90%;
+      height:30vh;
       margin-left:auto;
       margin-right:auto;
     }
@@ -55,21 +55,27 @@
       gap:14px;
       justify-content:center;
     }
-    button,input {
+    button {
       background:#1e1e1e;
+      border:2px solid #333;
+      border-radius:50%;
+      width:48px;
+      height:48px;
+      display:flex;
+      align-items:center;
+      justify-content:center;
       color:#ddd;
-      border:1px solid #333;
-      border-radius:6px;
-      padding:8px 12px;
       cursor:pointer;
-      transition:background 0.2s;
+      transition:all 0.2s ease;
+      box-shadow:0 0 6px rgba(0,0,0,0.6);
     }
-    button:hover,input[type=range]:hover { background:#2a2a2a; }
+    button:hover { background:#2f2f2f; border-color:#555; color:#fff; }
+    button.active { border-color:#bb86fc; background:#2a2250; color:#bb86fc; box-shadow:0 0 10px #bb86fc; }
     input[type=range]{padding:0;cursor:pointer}
     .list {
       margin-top:10px;
-      overflow:auto; /* ✅ solo la lista scrollabile */
-      height:calc(100vh - 220px); /* si adatta alla finestra */
+      overflow:auto;
+      height:calc(100vh - 220px);
       font-size:1rem;
       border:1px solid #222;
       border-radius:10px;
@@ -136,32 +142,22 @@
       <!-- Controlli -->
       <div class="controls">
         <button id="btnPrev" title="Indietro">
-          <svg width="26" height="26" viewBox="0 0 24 24" fill="currentColor">
-            <path d="M6 6h2v12H6zm3.5 6l8.5 6V6z"/>
-          </svg>
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor"><path d="M6 6h2v12H6zm3.5 6l8.5 6V6z"/></svg>
         </button>
         <button id="btnPlay" title="Play/Pausa">
-          <svg id="iconPlay" width="30" height="30" viewBox="0 0 24 24" fill="currentColor">
-            <path d="M8 5v14l11-7z"/>
-          </svg>
+          <svg id="iconPlay" width="26" height="26" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>
         </button>
         <button id="btnNext" title="Avanti">
-          <svg width="26" height="26" viewBox="0 0 24 24" fill="currentColor">
-            <path d="M16 18h2V6h-2M6 18l8.5-6L6 6v12z"/>
-          </svg>
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor"><path d="M16 18h2V6h-2M6 18l8.5-6L6 6v12z"/></svg>
         </button>
-        <button id="btnShuffle" title="Shuffle">
-          <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor">
-            <path d="M17 3h4v4h-2V5h-2V3zm0 14h2v-2h2v4h-4v-2zM3 5h6l7 7-7 7H3v-2h5.17L14 12 8.17 7H3V5z"/>
-          </svg>
+        <button id="btnShuffle" title="Shuffle OFF">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor"><path d="M17 3h4v4h-2V5h-2V3zm0 14h2v-2h2v4h-4v-2zM3 5h6l7 7-7 7H3v-2h5.17L14 12 8.17 7H3V5z"/></svg>
         </button>
       </div>
 
       <!-- Volume -->
       <div id="volumeRow">
-        <svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor">
-          <path d="M3 9v6h4l5 5V4L7 9H3z"/>
-        </svg>
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M3 9v6h4l5 5V4L7 9H3z"/></svg>
         <input id="vol" type="range" min="0" max="100" value="75">
         <span id="volLabel">75%</span>
       </div>
@@ -171,7 +167,12 @@
     <div>
       <div style="display:flex;gap:10px;margin-bottom:8px">
         <input id="playlistUrl" type="text" placeholder="Playlist URL..." style="flex:1;padding:10px;border-radius:6px;border:1px solid #333;background:#1e1e1e;color:#eee">
-        <button id="loadBtn">Carica</button>
+        <!-- Pulsante Carica trasformato in icona -->
+        <button id="loadBtn" title="Carica Playlist">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor">
+            <path d="M19 13H5v-2h14v2zm-7 8l-5-5h3V4h4v12h3l-5 5z"/>
+          </svg>
+        </button>
       </div>
       <div id="playlistTitle"></div>
       <div class="list" id="tracksList"></div>
@@ -182,6 +183,7 @@
 const API_KEY = 'AIzaSyDDvrky0zFKo-Vs_HY5DaaVTrlXL397wz4';
 const MAX_RESULTS = 50;
 let playlistId=null, player=null, totalResults=0;
+let shuffleEnabled=false;
 
 // Estrae ID playlist
 function extractPlaylistId(str){
@@ -191,7 +193,7 @@ function extractPlaylistId(str){
   return m?m[1]:null;
 }
 
-// Carica tutta la playlist in un unico array
+// Carica tutta la playlist
 async function loadPlaylist(){
   playlistId=extractPlaylistId(document.getElementById('playlistUrl').value.trim());
   if(!playlistId)return alert('Playlist non valida');
@@ -204,8 +206,6 @@ async function loadPlaylist(){
     url.searchParams.set('playlistId',playlistId);
     url.searchParams.set('maxResults',MAX_RESULTS);
     url.searchParams.set('key',API_KEY);
-    if(pageToken)url.searchParams.set('pageToken',pageToken);
-
     const res=await fetch(url);
     const data=await res.json();
     allItems=allItems.concat(data.items||[]);
@@ -221,12 +221,35 @@ async function loadPlaylist(){
     const vid = it.snippet.resourceId.videoId;
     const div = document.createElement('div');
     div.className = 'track';
-    div
     div.textContent = (idx+1) + ". " + it.snippet.title;
     div.dataset.videoId = vid;
     div.onclick = () => playVideo(vid, div);
     list.appendChild(div);
   });
+}
+
+// Funzioni di utilità
+function getActiveTrack() {
+  return document.querySelector('.track.active');
+}
+function playNextSequential() {
+  const active = getActiveTrack();
+  if (active && active.nextElementSibling) {
+    active.nextElementSibling.click();
+  }
+}
+function playNextRandom() {
+  const tracks = Array.from(document.querySelectorAll('#tracksList .track'));
+  if (tracks.length === 0) return;
+  const active = getActiveTrack();
+  const currentIndex = active ? tracks.indexOf(active) : -1;
+  let idx;
+  if (tracks.length === 1) {
+    idx = 0;
+  } else {
+    do { idx = Math.floor(Math.random() * tracks.length); } while (idx === currentIndex);
+  }
+  tracks[idx].click();
 }
 
 // Riproduzione video
@@ -244,11 +267,11 @@ function playVideo(id,el){
         },
         onStateChange:(e)=>{
           player.setPlaybackQuality('medium');
-          // ✅ Autoplay canzone successiva
           if(e.data === YT.PlayerState.ENDED){
-            const active=document.querySelector('.track.active');
-            if(active && active.nextElementSibling){
-              active.nextElementSibling.click();
+            if(shuffleEnabled){
+              playNextRandom();
+            } else {
+              playNextSequential();
             }
           }
         },
@@ -277,19 +300,15 @@ document.getElementById('btnPlay').onclick=()=>{
     icon.setAttribute('d','M8 5v14l11-7z'); // play
   }
 };
-document.getElementById('btnPrev').onclick=()=>{
-  const active=document.querySelector('.track.active');
-  if(active&&active.previousElementSibling) active.previousElementSibling.click();
-};
-document.getElementById('btnNext').onclick=()=>{
-  const active=document.querySelector('.track.active');
-  if(active&&active.nextElementSibling) active.nextElementSibling.click();
-};
+document.getElementById('btnPrev').onclick=()=>playNextSequential();
+document.getElementById('btnNext').onclick=()=>playNextSequential();
+
+// Shuffle toggle
 document.getElementById('btnShuffle').onclick=()=>{
-  const tracks=document.querySelectorAll('#tracksList .track');
-  if(tracks.length===0)return;
-  const randomIndex=Math.floor(Math.random()*tracks.length);
-  tracks[randomIndex].click();
+  shuffleEnabled=!shuffleEnabled;
+  const btn=document.getElementById('btnShuffle');
+  btn.classList.toggle('active', shuffleEnabled);
+  btn.title = shuffleEnabled ? 'Shuffle ON: riproduzione casuale' : 'Shuffle OFF: riproduzione sequenziale';
 };
 
 // Volume e seek
