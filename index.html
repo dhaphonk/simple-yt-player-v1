@@ -131,12 +131,15 @@ function initShuffleOrder(){
 function playNextRandomUnique(){
   const tracks=document.querySelectorAll('#tracksList .track');
   if(shuffleOrder.length===0 || shuffleIndex>=shuffleOrder.length){ initShuffleOrder(); }
-  const idx=shuffleOrder[shuffleIndex++];[&#95;{{{CITATION{{{&#95;2{](https://github.com/antonlavrinov/kingdom-of-fonts/tree/e882d72305714644d1357a1840540e6e25ad5d56/src%2Fcomponents%2FSpinner.js)  const idx=shuffleOrder[shuffleIndex++];
+  const idx=shuffleOrder[shuffleIndex++];  const idx=shuffleOrder[shuffleIndex++];
   tracks[idx].click();
 }
 
 function getActiveTrack(){ return document.querySelector('.track.active'); }
-function playNextSequential(){ const a=getActiveTrack(); if(a&&a.nextElementSibling) a.nextElementSibling.click(); }
+function playNextSequential(){ 
+  const a=getActiveTrack(); 
+  if(a && a.nextElementSibling) a.nextElementSibling.click(); 
+}
 
 async function loadPlaylist(){
   playlistId=extractPlaylistId(document.getElementById('playlistUrl').value.trim());
@@ -152,7 +155,6 @@ async function loadPlaylist(){
       url.searchParams.set('maxResults',MAX_RESULTS);
       url.searchParams.set('key',API_KEY);
       if(pageToken)url.searchParams.set('pageToken',pageToken);
-
       const res=await fetch(url);
       const data=await res.json();
       if(data.error){ throw new Error(data.error.message); }
@@ -285,3 +287,4 @@ document.getElementById('loadBtn').onclick=loadPlaylist;
 </script>
 </body>
 </html>
+
