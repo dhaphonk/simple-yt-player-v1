@@ -47,7 +47,18 @@
     #timeRow, #volumeRow { display:flex; align-items:center; gap:10px; margin-top:6px; }
     #timeRow input, #volumeRow input { flex:1; }
     #timeLabel, #volLabel { font-size:0.9rem; color:#aaa; min-width:70px; text-align:right; }
-    #loadingIndicator { display:none; font-size:0.9rem; color:#bbb; align-self:center; }
+    #loadingIndicator { display:none; }
+    .spinner { animation: rotate 1s linear infinite; }
+    .spinner .path {
+      stroke: #bb86fc; stroke-linecap: round;
+      animation: dash 1.5s ease-in-out infinite;
+    }
+    @keyframes rotate { 100% { transform: rotate(360deg); } }
+    @keyframes dash {
+      0% { stroke-dasharray: 1,150; stroke-dashoffset: 0; }
+      50% { stroke-dasharray: 90,150; stroke-dashoffset: -35; }
+      100% { stroke-dasharray: 90,150; stroke-dashoffset: -124; }
+    }
     @media(max-width:900px){.wrap{grid-template-columns:1fr}}
   </style>
 </head>
@@ -65,10 +76,10 @@
         <span id="timeLabel">0:00 / 0:00</span>
       </div>
       <div class="controls">
-        <button id="btnPrev" title="Indietro"><svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor"><path d="M6 6h2v12H6zm3.5 6l8.5 6V6z"/></svg></button>
-        <button id="btnPlay" title="Play/Pausa"><svg id="iconPlay" width="26" height="26" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg></button>
-        <button id="btnNext" title="Avanti"><svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor"><path d="M16 18h2V6h-2M6 18l8.5-6L6 6v12z"/></svg></button>
-        <button id="btnShuffle" title="Shuffle OFF"><svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor"><path d="M17 3h4v4h-2V5h-2V3zm0 14h2v-2h2v4h-4v-2zM3 5h6l7 7-7 7H3v-2h5.17L14 12 8.17 7H3V5z"/></svg></button>
+        <button id="btnPrev" aria-label="Precedente"><svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor"><path d="M6 6h2v12H6zm3.5 6l8.5 6V6z"/></svg></button>
+        <button id="btnPlay" aria-label="Play/Pausa"><svg id="iconPlay" width="26" height="26" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg></button>
+        <button id="btnNext" aria-label="Successivo"><svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor"><path d="M16 18h2V6h-2M6 18l8.5-6L6 6v12z"/></svg></button>
+        <button id="btnShuffle" aria-label="Shuffle"><svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor"><path d="M17 3h4v4h-2V5h-2V3zm0 14h2v-2h2v4h-4v-2zM3 5h6l7 7-7 7H3v-2h5.17L14 12 8.17 7H3V5z"/></svg></button>
       </div>
       <div id="volumeRow">
         <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M3 9v6h4l5 5V4L7 9H3z"/></svg>
@@ -81,10 +92,14 @@
     <div>
       <div style="display:flex;gap:10px;margin-bottom:8px;align-items:center">
         <input id="playlistUrl" type="text" placeholder="Playlist URL..." style="flex:1;padding:10px;border-radius:6px;border:1px solid #333;background:#1e1e1e;color:#eee">
-        <button id="loadBtn" title="Carica Playlist">
+        <button id="loadBtn" aria-label="Carica Playlist">
           <svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor"><path d="M19 13H5v-2h14v2zm-7 8l-5-5h3V4h4v12h3l-5 5z"/></svg>
         </button>
-        <span id="loadingIndicator">Caricamento...</span>
+        <span id="loadingIndicator">
+          <svg class="spinner" width="20" height="20" viewBox="0 0 50 50">
+            <circle class="path" cx="25" cy="25" r="20" fill="none" stroke-width="5"/>
+          </svg>
+        </span>
       </div>
       <div id="playlistTitle"></div>
       <div class="list" id="tracksList"></div>
@@ -97,6 +112,7 @@ const MAX_RESULTS = 50;
 let playlistId=null, player=null, totalResults=0;
 let shuffleEnabled=false;
 let shuffleOrder=[], shuffleIndex=0;
+let updateInterval=null;
 
 function extractPlaylistId(str){
   try { const u=new URL(str); return u.searchParams.get('list'); }
@@ -115,9 +131,10 @@ function initShuffleOrder(){
 function playNextRandomUnique(){
   const tracks=document.querySelectorAll('#tracksList .track');
   if(shuffleOrder.length===0 || shuffleIndex>=shuffleOrder.length){ initShuffleOrder(); }
-  const idx=shuffleOrder[shuffleIndex++];
+  const idx=shuffleOrder[shuffleIndex++];[&#95;{{{CITATION{{{&#95;2{](https://github.com/antonlavrinov/kingdom-of-fonts/tree/e882d72305714644d1357a1840540e6e25ad5d56/src%2Fcomponents%2FSpinner.js)  const idx=shuffleOrder[shuffleIndex++];
   tracks[idx].click();
 }
+
 function getActiveTrack(){ return document.querySelector('.track.active'); }
 function playNextSequential(){ const a=getActiveTrack(); if(a&&a.nextElementSibling) a.nextElementSibling.click(); }
 
@@ -127,49 +144,59 @@ async function loadPlaylist(){
   document.getElementById('loadingIndicator').style.display='inline';
 
   let allItems=[], seenIds=new Set(), pageToken='';
-  do {
-    const url=new URL('https://www.googleapis.com/youtube/v3/playlistItems');
-    url.searchParams.set('part','snippet');
-    url.searchParams.set('playlistId',playlistId);
-    url.searchParams.set('maxResults',MAX_RESULTS);
-    url.searchParams.set('key',API_KEY);
-    if(pageToken)url.searchParams.set('pageToken',pageToken);
+  try {
+    do {
+      const url=new URL('https://www.googleapis.com/youtube/v3/playlistItems');
+      url.searchParams.set('part','snippet');
+      url.searchParams.set('playlistId',playlistId);
+      url.searchParams.set('maxResults',MAX_RESULTS);
+      url.searchParams.set('key',API_KEY);
+      if(pageToken)url.searchParams.set('pageToken',pageToken);
 
-    const res=await fetch(url);
-    const data=await res.json();
-    (data.items||[]).forEach(it=>{
-      const vid=it.snippet      const vid=it.snippet.resourceId.videoId;
-      if(!seenIds.has(vid)){
-        seenIds.add(vid);
-        allItems.push(it);
-      }
+      const res=await fetch(url);
+      const data=await res.json();
+      if(data.error){ throw new Error(data.error.message); }
+
+      (data.items||[]).forEach(it=>{
+        const vid=it.snippet.resourceId.videoId;
+        if(!seenIds.has(vid)){
+          seenIds.add(vid);
+          allItems.push(it);
+        }
+      });
+      pageToken=data.nextPageToken||'';
+    } while(pageToken);
+
+    totalResults=allItems.length;
+    document.getElementById('playlistTitle').textContent=`Totale: ${totalResults} brani`;
+
+    const list=document.getElementById('tracksList');
+    list.innerHTML='';
+    allItems.forEach((it, idx) => {
+      const vid = it.snippet.resourceId.videoId;
+      const div = document.createElement('div');
+      div.className = 'track';
+      div.textContent = (idx+1) + ". " + it.snippet.title;
+      div.dataset.videoId = vid;
+      div.onclick = () => playVideo(vid, div);
+      list.appendChild(div);
     });
-    pageToken=data.nextPageToken||'';
-  } while(pageToken);
 
-  totalResults=allItems.length;
-  document.getElementById('playlistTitle').textContent=`Totale: ${totalResults} brani`;
-
-  const list=document.getElementById('tracksList');
-  list.innerHTML='';
-  allItems.forEach((it, idx) => {
-    const vid = it.snippet.resourceId.videoId;
-    const div = document.createElement('div');
-    div.className = 'track';
-    div.textContent = (idx+1) + ". " + it.snippet.title;
-    div.dataset.videoId = vid;
-    div.onclick = () => playVideo(vid, div);
-    list.appendChild(div);
-  });
-
-  initShuffleOrder();
-  document.getElementById('loadingIndicator').style.display='none';
+    initShuffleOrder();
+  } catch(err){
+    alert("Errore nel caricamento playlist: " + err.message);
+  } finally {
+    document.getElementById('loadingIndicator').style.display='none';
+  }
 }
 
 // Riproduzione video
 function playVideo(id,el){
   document.querySelectorAll('.track').forEach(t=>t.classList.remove('active'));
-  if(el) el.classList.add('active');
+  if(el){
+    el.classList.add('active');
+    el.scrollIntoView({behavior:"smooth", block:"center"});
+  }
   if(!player){
     player=new YT.Player('player',{
       width:'100%',height:'100%',videoId:id,
@@ -177,16 +204,15 @@ function playVideo(id,el){
       events:{
         onReady:()=>{
           player.setPlaybackQuality('medium');
-          setInterval(()=>player.setPlaybackQuality('medium'),2000);
+          if(!updateInterval){
+            updateInterval=setInterval(updateUI,500);
+          }
         },
         onStateChange:(e)=>{
           player.setPlaybackQuality('medium');
           if(e.data === YT.PlayerState.ENDED){
-            if(shuffleEnabled){
-              playNextRandomUnique();
-            } else {
-              playNextSequential();
-            }
+            if(shuffleEnabled){ playNextRandomUnique(); }
+            else { playNextSequential(); }
           }
         },
         onError:e=>{
@@ -197,8 +223,19 @@ function playVideo(id,el){
   } else {
     player.loadVideoById(id);
     player.setPlaybackQuality('medium');
-    setInterval(()=>player.setPlaybackQuality('medium'),2000);
   }
+}
+
+// Aggiorna UI tempo e slider
+function updateUI(){
+  try{
+    if(player){
+      const c=player.getCurrentTime(),d=player.getDuration();
+      document.getElementById('seek').value=d?c/d*100:0;
+      document.getElementById('timeLabel').textContent=
+        `${Math.floor(c/60)}:${String(Math.floor(c%60)).padStart(2,'0')} / ${Math.floor(d/60)}:${String(Math.floor(d%60)).padStart(2,'0')}`;
+    }
+  }catch{}
 }
 
 // Controlli
@@ -214,8 +251,8 @@ document.getElementById('btnPlay').onclick=()=>{
     icon.setAttribute('d','M8 5v14l11-7z'); // play
   }
 };
-document.getElementById('btnPrev').onclick=()=>playNextSequential();
-document.getElementById('btnNext').onclick=()=>playNextSequential();
+document.getElementById('btnPrev').onclick=()=>{ shuffleEnabled?playNextRandomUnique():playNextSequential(); };
+document.getElementById('btnNext').onclick=()=>{ shuffleEnabled?playNextRandomUnique():playNextSequential(); };
 
 // Shuffle toggle
 document.getElementById('btnShuffle').onclick=()=>{
@@ -236,16 +273,6 @@ document.getElementById('seek').oninput=e=>{
     player.seekTo(d*e.target.value/100,true);
   }
 };
-setInterval(()=>{
-  try{
-    if(player){
-      const c=player.getCurrentTime(),d=player.getDuration();
-      document.getElementById('seek').value=d?c/d*100:0;
-      document.getElementById('timeLabel').textContent=
-        `${Math.floor(c/60)}:${String(Math.floor(c%60)).padStart(2,'0')} / ${Math.floor(d/60)}:${String(Math.floor(d%60)).padStart(2,'0')}`;
-    }
-  }catch{}
-},500);
 
 document.getElementById('loadBtn').onclick=loadPlaylist;
 
