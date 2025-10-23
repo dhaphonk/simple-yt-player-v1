@@ -3,159 +3,73 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>simple-yt-player-v1 by dhaphonk</title>
+  <title>simple-yt-player-v1</title>
   <style>
     html, body {
-      margin:0;
-      padding:0;
-      height:100%;
+      margin:0; padding:0; height:100%;
       overflow:hidden;
       font-family:system-ui,Arial,sans-serif;
-      background:#121212;
-      color:#f0f0f0;
-      line-height:1.5;
+      background:#121212; color:#f0f0f0;
     }
     .wrap {
-      height:100vh;
-      max-width:1400px;
-      margin:0 auto;
-      padding:20px;
-      display:grid;
-      grid-template-columns:1fr 1fr;
-      gap:40px;
+      height:100vh; max-width:1400px; margin:0 auto; padding:20px;
+      display:grid; grid-template-columns:1fr 1fr; gap:40px;
       box-sizing:border-box;
     }
-    header {
-      grid-column:1/-1;
-      text-align:center;
-      margin-bottom:10px;
-    }
-    h1 {
-      margin:8px 0;
-      font-size:2rem;
-      color:#bb86fc;
-      font-weight:600;
-    }
-    p { margin:0; font-size:1rem; color:#aaa; }
+    header { grid-column:1/-1; text-align:center; margin-bottom:10px; }
+    h1 { margin:8px 0; font-size:2rem; color:#bb86fc; font-weight:600; }
     .player {
-      background:#000;
-      border-radius:12px;
-      overflow:hidden;
+      background:#000; border-radius:12px; overflow:hidden;
       box-shadow:0 2px 12px rgba(0,0,0,0.5);
-      margin-bottom:10px;
-      width:90%;
-      height:30vh;
-      margin-left:auto;
-      margin-right:auto;
+      margin-bottom:10px; width:90%; height:30vh;
+      margin-left:auto; margin-right:auto;
     }
     .controls {
-      margin:12px 0;
-      display:flex;
-      align-items:center;
-      gap:14px;
-      justify-content:center;
+      margin:12px 0; display:flex; align-items:center; gap:14px; justify-content:center;
     }
     button {
-      background:#1e1e1e;
-      border:2px solid #333;
-      border-radius:50%;
-      width:48px;
-      height:48px;
-      display:flex;
-      align-items:center;
-      justify-content:center;
-      color:#ddd;
-      cursor:pointer;
-      transition:all 0.2s ease;
+      background:#1e1e1e; border:2px solid #333; border-radius:50%;
+      width:48px; height:48px; display:flex; align-items:center; justify-content:center;
+      color:#ddd; cursor:pointer; transition:all 0.2s ease;
       box-shadow:0 0 6px rgba(0,0,0,0.6);
     }
     button:hover { background:#2f2f2f; border-color:#555; color:#fff; }
     button.active { border-color:#bb86fc; background:#2a2250; color:#bb86fc; box-shadow:0 0 10px #bb86fc; }
     input[type=range]{padding:0;cursor:pointer}
     .list {
-      margin-top:10px;
-      overflow:auto;
-      height:calc(100vh - 220px);
-      font-size:1rem;
-      border:1px solid #222;
-      border-radius:10px;
-      background:#181818;
-      padding:10px;
+      margin-top:10px; overflow:auto; height:calc(100vh - 220px);
+      font-size:1rem; border:1px solid #222; border-radius:10px;
+      background:#181818; padding:10px;
     }
-    .track {
-      padding:8px 12px;
-      cursor:pointer;
-      border-bottom:1px solid #222;
-      transition:background 0.15s;
-      line-height:1.5;
-    }
+    .track { padding:8px 12px; cursor:pointer; border-bottom:1px solid #222; transition:background 0.15s; }
     .track:hover { background:#2a2a2a; }
     .track.active { background:#3a264d; }
-    #playlistTitle {
-      margin-top:6px;
-      font-size:1rem;
-      font-weight:500;
-      text-align:center;
-      color:#fff;
-    }
-    #playlistInfo {
-      margin-top:4px;
-      font-size:0.9rem;
-      color:#bbb;
-      text-align:center;
-    }
-    #timeRow, #volumeRow {
-      display:flex;
-      align-items:center;
-      gap:10px;
-      margin-top:6px;
-    }
-    #timeRow input, #volumeRow input {
-      flex:1;
-    }
-    #timeLabel, #volLabel {
-      font-size:0.9rem;
-      color:#aaa;
-      min-width:70px;
-      text-align:right;
-    }
+    #timeRow, #volumeRow { display:flex; align-items:center; gap:10px; margin-top:6px; }
+    #timeRow input, #volumeRow input { flex:1; }
+    #timeLabel, #volLabel { font-size:0.9rem; color:#aaa; min-width:70px; text-align:right; }
+    #loadingIndicator { display:none; font-size:0.9rem; color:#bbb; align-self:center; }
     @media(max-width:900px){.wrap{grid-template-columns:1fr}}
   </style>
 </head>
 <body>
   <div class="wrap">
     <header>
-      <h1>simple-yt-player-v1 by dhaphonk</h1>
-      <p id="playlistInfo">Caricamento...</p>
+      <h1>simple-yt-player-v1</h1>
     </header>
 
     <!-- Colonna sinistra: Player -->
     <div>
       <div class="player" id="player"></div>
-
-      <!-- Slider avanzamento -->
       <div id="timeRow">
         <input id="seek" type="range" min="0" max="100" value="0">
         <span id="timeLabel">0:00 / 0:00</span>
       </div>
-
-      <!-- Controlli -->
       <div class="controls">
-        <button id="btnPrev" title="Indietro">
-          <svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor"><path d="M6 6h2v12H6zm3.5 6l8.5 6V6z"/></svg>
-        </button>
-        <button id="btnPlay" title="Play/Pausa">
-          <svg id="iconPlay" width="26" height="26" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>
-        </button>
-        <button id="btnNext" title="Avanti">
-          <svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor"><path d="M16 18h2V6h-2M6 18l8.5-6L6 6v12z"/></svg>
-        </button>
-        <button id="btnShuffle" title="Shuffle OFF">
-          <svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor"><path d="M17 3h4v4h-2V5h-2V3zm0 14h2v-2h2v4h-4v-2zM3 5h6l7 7-7 7H3v-2h5.17L14 12 8.17 7H3V5z"/></svg>
-        </button>
+        <button id="btnPrev" title="Indietro"><svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor"><path d="M6 6h2v12H6zm3.5 6l8.5 6V6z"/></svg></button>
+        <button id="btnPlay" title="Play/Pausa"><svg id="iconPlay" width="26" height="26" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg></button>
+        <button id="btnNext" title="Avanti"><svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor"><path d="M16 18h2V6h-2M6 18l8.5-6L6 6v12z"/></svg></button>
+        <button id="btnShuffle" title="Shuffle OFF"><svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor"><path d="M17 3h4v4h-2V5h-2V3zm0 14h2v-2h2v4h-4v-2zM3 5h6l7 7-7 7H3v-2h5.17L14 12 8.17 7H3V5z"/></svg></button>
       </div>
-
-      <!-- Volume -->
       <div id="volumeRow">
         <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M3 9v6h4l5 5V4L7 9H3z"/></svg>
         <input id="vol" type="range" min="0" max="100" value="75">
@@ -165,14 +79,12 @@
 
     <!-- Colonna destra: Playlist -->
     <div>
-      <div style="display:flex;gap:10px;margin-bottom:8px">
+      <div style="display:flex;gap:10px;margin-bottom:8px;align-items:center">
         <input id="playlistUrl" type="text" placeholder="Playlist URL..." style="flex:1;padding:10px;border-radius:6px;border:1px solid #333;background:#1e1e1e;color:#eee">
-        <!-- Pulsante Carica trasformato in icona -->
         <button id="loadBtn" title="Carica Playlist">
-          <svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor">
-            <path d="M19 13H5v-2h14v2zm-7 8l-5-5h3V4h4v12h3l-5 5z"/>
-          </svg>
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor"><path d="M19 13H5v-2h14v2zm-7 8l-5-5h3V4h4v12h3l-5 5z"/></svg>
         </button>
+        <span id="loadingIndicator">Caricamento...</span>
       </div>
       <div id="playlistTitle"></div>
       <div class="list" id="tracksList"></div>
@@ -186,45 +98,35 @@ let playlistId=null, player=null, totalResults=0;
 let shuffleEnabled=false;
 let shuffleOrder=[], shuffleIndex=0;
 
-// Estrae ID playlist dall'URL intero
 function extractPlaylistId(str){
-  try {
-    const u=new URL(str);
-    return u.searchParams.get('list');
-  } catch(e) {
-    return null;
-  }
+  try { const u=new URL(str); return u.searchParams.get('list'); }
+  catch(e){ return null; }
 }
 
-// Inizializza ordine shuffle unico
 function initShuffleOrder(){
   const tracks=document.querySelectorAll('#tracksList .track');
   shuffleOrder=Array.from(tracks.keys());
-  for(let i=shuffleOrder.length-1;i>0;i--){
-    const j=Math.floor(Math.random()*(i+1));
-    const j=Math.floor(Math.random()*(i+1));
-    [shuffleOrder[i], shuffleOrder[j]] = [shuffleOrder[j], shuffleOrder[i]];
+  for(let k=shuffleOrder.length-1;k>0;k--){
+    const r=Math.floor(Math.random()*(k+1));
+    [shuffleOrder[k], shuffleOrder[r]]=[shuffleOrder[r], shuffleOrder[k]];
   }
   shuffleIndex=0;
 }
-
 function playNextRandomUnique(){
   const tracks=document.querySelectorAll('#tracksList .track');
-  if(shuffleOrder.length===0 || shuffleIndex>=shuffleOrder.length){
-    initShuffleOrder();
-  }
+  if(shuffleOrder.length===0 || shuffleIndex>=shuffleOrder.length){ initShuffleOrder(); }
   const idx=shuffleOrder[shuffleIndex++];
   tracks[idx].click();
 }
+function getActiveTrack(){ return document.querySelector('.track.active'); }
+function playNextSequential(){ const a=getActiveTrack(); if(a&&a.nextElementSibling) a.nextElementSibling.click(); }
 
-// Carica playlist con deduplicazione
 async function loadPlaylist(){
   playlistId=extractPlaylistId(document.getElementById('playlistUrl').value.trim());
   if(!playlistId)return alert('Playlist non valida');
+  document.getElementById('loadingIndicator').style.display='inline';
 
-  let allItems=[];
-  let seenIds=new Set();
-  let pageToken='';
+  let allItems=[], seenIds=new Set(), pageToken='';
   do {
     const url=new URL('https://www.googleapis.com/youtube/v3/playlistItems');
     url.searchParams.set('part','snippet');
@@ -235,20 +137,18 @@ async function loadPlaylist(){
 
     const res=await fetch(url);
     const data=await res.json();
-
     (data.items||[]).forEach(it=>{
-      const vid=it.snippet.resourceId.videoId;
+      const vid=it.snippet      const vid=it.snippet.resourceId.videoId;
       if(!seenIds.has(vid)){
         seenIds.add(vid);
         allItems.push(it);
       }
     });
-
     pageToken=data.nextPageToken||'';
   } while(pageToken);
 
   totalResults=allItems.length;
-  document.getElementById('playlistInfo').textContent=`Totale: ${totalResults} brani`;
+  document.getElementById('playlistTitle').textContent=`Totale: ${totalResults} brani`;
 
   const list=document.getElementById('tracksList');
   list.innerHTML='';
@@ -262,8 +162,8 @@ async function loadPlaylist(){
     list.appendChild(div);
   });
 
-  // inizializza ordine shuffle
   initShuffleOrder();
+  document.getElementById('loadingIndicator').style.display='none';
 }
 
 // Riproduzione video
