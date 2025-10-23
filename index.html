@@ -184,21 +184,46 @@ const API_KEY = 'AIzaSyDDvrky0zFKo-Vs_HY5DaaVTrlXL397wz4';
 const MAX_RESULTS = 50;
 let playlistId=null, player=null, totalResults=0;
 let shuffleEnabled=false;
+let shuffleOrder=[], shuffleIndex=0;
 
-// Estrae ID playlist
+// Estrae ID playlist dall'URL intero
 function extractPlaylistId(str){
-  try{const u=new URL(str);return u.searchParams.get('list');}
-  catch(e){}
-  const m=str.match(/list=([A-Za-z0-9_-]+)/);
-  return m?m[1]:null;
+  try {
+    const u=new URL(str);
+    return u.searchParams.get('list');
+  } catch(e) {
+    return null;
+  }
 }
 
-// Carica tutta la playlist
+// Inizializza ordine shuffle unico
+function initShuffleOrder(){
+  const tracks=document.querySelectorAll('#tracksList .track');
+  shuffleOrder=Array.from(tracks.keys());
+  for(let i=shuffleOrder.length-1;i>0;i--){
+    const j=Math.floor(Math.random()*(i+1));
+    const j=Math.floor(Math.random()*(i+1));
+    [shuffleOrder[i], shuffleOrder[j]] = [shuffleOrder[j], shuffleOrder[i]];
+  }
+  shuffleIndex=0;
+}
+
+function playNextRandomUnique(){
+  const tracks=document.querySelectorAll('#tracksList .track');
+  if(shuffleOrder.length===0 || shuffleIndex>=shuffleOrder.length){
+    initShuffleOrder();
+  }
+  const idx=shuffleOrder[shuffleIndex++];
+  tracks[idx].click();
+}
+
+// Carica playlist con deduplicazione
 async function loadPlaylist(){
   playlistId=extractPlaylistId(document.getElementById('playlistUrl').value.trim());
   if(!playlistId)return alert('Playlist non valida');
 
   let allItems=[];
+  let seenIds=new Set();
   let pageToken='';
   do {
     const url=new URL('https://www.googleapis.com/youtube/v3/playlistItems');
@@ -206,9 +231,19 @@ async function loadPlaylist(){
     url.searchParams.set('playlistId',playlistId);
     url.searchParams.set('maxResults',MAX_RESULTS);
     url.searchParams.set('key',API_KEY);
+    if(pageToken)url.searchParams.set('pageToken',pageToken);
+
     const res=await fetch(url);
     const data=await res.json();
-    allItems=allItems.concat(data.items||[]);
+
+    (data.items||[]).forEach(it=>{
+      const vid=it.snippet.resourceId.videoId;
+      if(!seenIds.has(vid)){
+        seenIds.add(vid);
+        allItems.push(it);
+      }
+    });
+
     pageToken=data.nextPageToken||'';
   } while(pageToken);
 
@@ -226,30 +261,9 @@ async function loadPlaylist(){
     div.onclick = () => playVideo(vid, div);
     list.appendChild(div);
   });
-}
 
-// Funzioni di utilità
-function getActiveTrack() {
-  return document.querySelector('.track.active');
-}
-function playNextSequential() {
-  const active = getActiveTrack();
-  if (active && active.nextElementSibling) {
-    active.nextElementSibling.click();
-  }
-}
-function playNextRandom() {
-  const tracks = Array.from(document.querySelectorAll('#tracksList .track'));
-  if (tracks.length === 0) return;
-  const active = getActiveTrack();
-  const currentIndex = active ? tracks.indexOf(active) : -1;
-  let idx;
-  if (tracks.length === 1) {
-    idx = 0;
-  } else {
-    do { idx = Math.floor(Math.random() * tracks.length); } while (idx === currentIndex);
-  }
-  tracks[idx].click();
+  // inizializza ordine shuffle
+  initShuffleOrder();
 }
 
 // Riproduzione video
@@ -269,7 +283,7 @@ function playVideo(id,el){
           player.setPlaybackQuality('medium');
           if(e.data === YT.PlayerState.ENDED){
             if(shuffleEnabled){
-              playNextRandom();
+              playNextRandomUnique();
             } else {
               playNextSequential();
             }
