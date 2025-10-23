@@ -221,7 +221,7 @@ async function loadPlaylist(){
     const vid = it.snippet.resourceId.videoId;
     const div = document.createElement('div');
     div.className = 'track';
-    // 🔢 Numerazione progressiva
+    div
     div.textContent = (idx+1) + ". " + it.snippet.title;
     div.dataset.videoId = vid;
     div.onclick = () => playVideo(vid, div);
@@ -235,28 +235,34 @@ function playVideo(id,el){
   if(el) el.classList.add('active');
   if(!player){
     player=new YT.Player('player',{
-  width:'100%',height:'100%',videoId:id,
-  playerVars:{controls:0,modestbranding:1,rel:0,origin:location.origin},
-  events:{
-    onReady:()=>{
-      player.setPlaybackQuality('medium');
-      setInterval(()=>player.setPlaybackQuality('medium'),2000);
-    },
-    onStateChange:(e)=>{
-      player.setPlaybackQuality('medium');
-      // ✅ Autoplay canzone successiva
-      if(e.data === YT.PlayerState.ENDED){
-        const active=document.querySelector('.track.active');
-        if(active && active.nextElementSibling){
-          active.nextElementSibling.click();
+      width:'100%',height:'100%',videoId:id,
+      playerVars:{controls:0,modestbranding:1,rel:0,origin:location.origin},
+      events:{
+        onReady:()=>{
+          player.setPlaybackQuality('medium');
+          setInterval(()=>player.setPlaybackQuality('medium'),2000);
+        },
+        onStateChange:(e)=>{
+          player.setPlaybackQuality('medium');
+          // ✅ Autoplay canzone successiva
+          if(e.data === YT.PlayerState.ENDED){
+            const active=document.querySelector('.track.active');
+            if(active && active.nextElementSibling){
+              active.nextElementSibling.click();
+            }
+          }
+        },
+        onError:e=>{
+          if([101,150,153].includes(e.data)) el?.nextElementSibling?.click();
         }
       }
-    },
-    onError:e=>{
-      if([101,150,153].includes(e.data)) el?.nextElementSibling?.click();
-    }
+    });
+  } else {
+    player.loadVideoById(id);
+    player.setPlaybackQuality('medium');
+    setInterval(()=>player.setPlaybackQuality('medium'),2000);
   }
-});
+}
 
 // Controlli
 document.getElementById('btnPlay').onclick=()=>{
