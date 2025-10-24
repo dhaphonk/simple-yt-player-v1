@@ -44,7 +44,7 @@
 
   .player-area { display:flex; flex-direction:column; padding:20px; }
   #player {
-    width:100%; height:360px; /* più grande per comandi nativi */
+    width:100%; height:360px;
     background:#000; border-radius:12px;
   }
   .controls-bar {
@@ -66,6 +66,7 @@
   <div class="playlist-input">
     <input id="playlistUrl" type="text" placeholder="Inserisci URL playlist YouTube...">
     <button id="loadBtn" aria-label="Naviga Playlist">
+      <!-- Icona lente -->
       <svg viewBox="0 0 24 24" width="20" height="20"><path d="M15.5 14h-.79l-.28-.27a6.471 6.471 0 001.48-5.34C15.21 5.01 12.2 2 8.5 2S1.79 5.01 1.79 8.39c0 3.38 3.01 6.39 6.71 6.39 1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zM8.5 13c-2.49 0-4.5-2.01-4.5-4.61S6.01 3.78 8.5 3.78 13 5.79 13 8.39 10.99 13 8.5 13z"/></svg>
     </button>
   </div>
@@ -156,53 +157,63 @@ async function loadPlaylist(){
 
 function playVideo(id,el){
   document.querySelectorAll('.track').forEach(t=>t.classList.remove('active'));
-  if(el) el.classList.add('active');
-  if(!player){
-    player=new YT.Player('player',{
-      width:'100%', height:'100%', video      videoId:id,
-      playerVars:{
-        controls:1,          // ✅ comandi nativi YouTube visibili
-        modestbranding:1,
-        rel:0,
-        origin:location.origin
+  if(el)function playVideo(id, el) {
+  // reset evidenziazione
+  document.querySelectorAll('.track').forEach(t => t.classList.remove('active'));
+  if (el) el.classList.add('active');
+
+  if (!player) {
+    player = new YT.Player('player', {
+      width: '100%',
+      height: '100%',
+      videoId: id,   // ✅ proprietà corretta
+      playerVars: {
+        controls: 1,          // comandi nativi YouTube visibili
+        modestbranding: 1,
+        rel: 0,
+        origin: location.origin
       },
-      events:{
-        onReady:()=>{
-          try { player.setPlaybackQuality('medium'); } catch{}
+      events: {
+        onReady: () => {
+          try { player.setPlaybackQuality('medium'); } catch {}
         },
-        onStateChange:(e)=>{
-          try { player.setPlaybackQuality('medium'); } catch{}
-          if(e.data===YT.PlayerState.ENDED){
-            if(loopEnabled){ playVideo(id,el); }
-            else if(shuffleEnabled){ playNextRandomUnique(); }
-            else { playNextSequential(); }
+        onStateChange: (e) => {
+          try { player.setPlaybackQuality('medium'); } catch {}
+          if (e.data === YT.PlayerState.ENDED) {
+            if (loopEnabled) {
+              playVideo(id, el);
+            } else if (shuffleEnabled) {
+              playNextRandomUnique();
+            } else {
+              playNextSequential();
+            }
           }
         }
       }
     });
   } else {
     player.loadVideoById(id);
-    try { player.setPlaybackQuality('medium'); } catch{}
+    try { player.setPlaybackQuality('medium'); } catch {}
   }
 }
 
 // Bottoni esterni
-document.getElementById('btnShuffle').onclick=()=>{
-  shuffleEnabled=!shuffleEnabled;
+document.getElementById('btnShuffle').onclick = () => {
+  shuffleEnabled = !shuffleEnabled;
   document.getElementById('btnShuffle').classList.toggle('active', shuffleEnabled);
   updateShuffleCounter();
 };
-document.getElementById('btnLoop').onclick=()=>{
-  loopEnabled=!loopEnabled;
+document.getElementById('btnLoop').onclick = () => {
+  loopEnabled = !loopEnabled;
   document.getElementById('btnLoop').classList.toggle('active', loopEnabled);
 };
 
-document.getElementById('loadBtn').onclick=loadPlaylist;
+document.getElementById('loadBtn').onclick = loadPlaylist;
 
 // Carica API YouTube
 (function(){
-  const tag=document.createElement('script');
-  tag.src="https://www.youtube.com/iframe_api";
+  const tag = document.createElement('script');
+  tag.src = "https://www.youtube.com/iframe_api";
   document.body.appendChild(tag);
 })();
 </script>
