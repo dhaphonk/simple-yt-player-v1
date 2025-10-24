@@ -67,7 +67,9 @@
     <input id="playlistUrl" type="text" placeholder="Inserisci URL playlist YouTube...">
     <button id="loadBtn" aria-label="Naviga Playlist">
       <!-- Icona lente -->
-      <svg viewBox="0 0 24 24" width="20" height="20"><path d="M15.5 14h-.79l-.28-.27a6.471 6.471 0 001.48-5.34C15.21 5.01 12.2 2 8.5 2S1.79 5.01 1.79 8.39c0 3.38 3.01 6.39 6.71 6.39 1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zM8.5 13c-2.49 0-4.5-2.01-4.5-4.61S6.01 3.78 8.5 3.78 13 5.79 13 8.39 10.99 13 8.5 13z"/></svg>
+      <svg viewBox="0 0 24 24" width="20" height="20">
+        <path d="M15.5 14h-.79l-.28-.27a6.471 6.471 0 001.48-5.34C15.21 5.01 12.2 2 8.5 2S1.79 5.01 1.79 8.39c0 3.38 3.01 6.39 6.71 6.39 1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zM8.5 13c-2.49 0-4.5-2.01-4.5-4.61S6.01 3.78 8.5 3.78 13 5.79 13 8.39 10.99 13 8.5 13z"/>
+      </svg>
     </button>
   </div>
   <div id="playlistTitle"></div>
@@ -155,10 +157,7 @@ async function loadPlaylist(){
   } catch(err){ alert("Errore: "+err.message); }
 }
 
-function playVideo(id,el){
-  document.querySelectorAll('.track').forEach(t=>t.classList.remove('active'));
-  if(el)function playVideo(id, el) {
-  // reset evidenziazione
+function playVideo(id, el) {
   document.querySelectorAll('.track').forEach(t => t.classList.remove('active'));
   if (el) el.classList.add('active');
 
@@ -168,7 +167,7 @@ function playVideo(id,el){
       height: '100%',
       videoId: id,   // ✅ proprietà corretta
       playerVars: {
-        controls: 1,          // comandi nativi YouTube visibili
+        controls: 1,          // comandi nativi YouTube
         modestbranding: 1,
         rel: 0,
         origin: location.origin
